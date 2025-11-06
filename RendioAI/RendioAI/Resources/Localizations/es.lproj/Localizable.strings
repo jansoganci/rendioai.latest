@@ -1,0 +1,209 @@
+/*
+   Localizable.strings (Spanish)
+   Rendio AI
+*/
+
+// MARK: - Home Screen
+"home_title" = "Rendio AI";
+"home_subtitle" = "Mínima fricción, máxima diversión.";
+"home_search_placeholder" = "Buscar modelos, categorías o videos...";
+"home_quota_warning" = "Advertencia: Créditos bajos (%d restantes)";
+"home_upgrade_button" = "Mejorar";
+"home_featured_models" = "Modelos Destacados";
+"home_all_models" = "Todos los Modelos";
+"home_no_models_found" = "No se encontraron modelos. Intenta ajustar tu búsqueda.";
+"home_loading" = "Cargando modelos...";
+"home.accessibility.search_label" = "Buscar modelos";
+"home.accessibility.search_hint" = "Buscar por nombre de modelo o categoría";
+"home.accessibility.tap_to_view" = "Toca dos veces para ver detalles del modelo";
+"home.accessibility.carousel_label" = "Carrusel de modelos destacados, página %d de %d";
+"home.accessibility.carousel_hint" = "Desliza hacia la izquierda o derecha para navegar modelos destacados";
+"home.accessibility.loading" = "Cargando modelos";
+
+// MARK: - Error Messages
+"error.network.failure" = "Falló la conexión de red. Por favor verifica tu conexión a internet.";
+"error.network.timeout" = "La conexión expiró. Por favor intenta de nuevo.";
+"error.network.invalid_response" = "Se recibió una respuesta inválida del servidor.";
+"error.credit.insufficient" = "No tienes suficientes créditos para generar este video.";
+"error.validation.prompt_required" = "Por favor ingresa una solicitud antes de generar un video.";
+"error.validation.image_required" = "Por favor selecciona una imagen antes de generar un video.";
+"error.model.not_found" = "Modelo no encontrado. Por favor intenta de nuevo.";
+"error.auth.unauthorized" = "No estás autorizado para realizar esta acción.";
+"error.auth.device_invalid" = "La autenticación del dispositivo falló. Por favor reinicia la aplicación.";
+"error.general.unexpected" = "Algo salió mal. Por favor intenta de nuevo más tarde.";
+
+// MARK: - Tab Bar
+"tab.home" = "Inicio";
+"tab.history" = "Historial";
+"tab.profile" = "Perfil";
+
+// MARK: - Common UI
+"common.ok" = "OK";
+"common.cancel" = "Cancelar";
+"common.done" = "Listo";
+"common.save" = "Guardar";
+"common.delete" = "Eliminar";
+"common.retry" = "Reintentar";
+"common.close" = "Cerrar";
+"common.back" = "Atrás";
+"common.next" = "Siguiente";
+"common.skip" = "Omitir";
+"common.loading" = "Cargando...";
+"common.error" = "Error";
+"common.success" = "Éxito";
+"common.warning" = "Advertencia";
+"common.accessibility.disabled" = "El botón está deshabilitado";
+"common.accessibility.clear_search" = "Limpiar búsqueda";
+"common.accessibility.clear_search_hint" = "Toca dos veces para limpiar el texto de búsqueda";
+
+// MARK: - Credits & Premium
+"credits.title" = "Créditos";
+"credits.remaining" = "%d créditos restantes";
+"credits.insufficient_title" = "Créditos Insuficientes";
+"credits.insufficient_message" = "Necesitas %d créditos para generar este video, pero solo tienes %d.";
+"credits.buy_more" = "Comprar Más Créditos";
+"credits.free_tier" = "Nivel Gratuito";
+"credits.premium_tier" = "Nivel Premium";
+
+// MARK: - Model Detail Screen
+"model_detail.title" = "Detalles del Modelo";
+"model_detail.description" = "Descripción";
+"model_detail.cost" = "Costo: %d créditos";
+"model_detail.generate_button" = "Generar Video";
+"model_detail.generating" = "Generando...";
+"model_detail.prompt_label" = "Tu Solicitud de Video";
+"model_detail.prompt_placeholder" = "Describe tu idea de video...";
+"model_detail.image_label" = "Imagen";
+"model_detail.select_image" = "Seleccionar Imagen";
+"model_detail.image_required" = "La imagen es requerida para este modelo";
+"model_detail.settings_title" = "Configuración";
+"model_detail.settings" = "Configuración";
+"model_detail.duration_label" = "Duración";
+"model_detail.duration" = "Duración";
+"model_detail.resolution_label" = "Resolución";
+"model_detail.aspect_ratio_label" = "Relación de Aspecto";
+"model_detail.resolution" = "Resolución";
+"model_detail.fps_label" = "Cuadros Por Segundo";
+"model_detail.fps" = "FPS";
+"model_detail.cost_info" = "Esta generación costará %d créditos.";
+"model_detail.tip" = "Consejo: Mantén las solicitudes cortas y claras para obtener mejores resultados.";
+"credits_short" = "créditos";
+
+// MARK: - Profile Screen
+"profile.title" = "Perfil";
+"profile.credits" = "Créditos";
+"profile.coming_soon" = "Próximamente...";
+"profile.settings" = "Configuración";
+"profile.language" = "Idioma";
+"profile.theme" = "Tema";
+"profile.sign_in" = "Iniciar sesión con Apple";
+"profile.sign_out" = "Cerrar Sesión";
+"profile.delete_account" = "Eliminar Cuenta";
+
+// Account Section
+"profile.account_title" = "Cuenta";
+"profile.restore_purchases" = "Restaurar Compras";
+
+// Credit Section
+"profile.credits_remaining" = "%d créditos";
+"profile.buy_credits" = "Comprar Créditos";
+"profile.view_history" = "Ver Historial";
+"profile.guest_cannot_purchase" = "Inicia sesión para comprar créditos";
+
+// User Info
+"profile.guest_user" = "Usuario Invitado";
+"profile.tier_free" = "Nivel Gratuito";
+"profile.tier_premium" = "Nivel Premium";
+"profile.email_hidden" = "—";
+
+// Theme Options
+"profile.theme_system" = "Sistema";
+"profile.theme_light" = "Claro";
+"profile.theme_dark" = "Oscuro";
+
+// Language Options
+"profile.language_english" = "English";
+"profile.language_turkish" = "Türkçe";
+"profile.language_spanish" = "Español";
+
+// Alerts
+"profile.delete_account_title" = "¿Eliminar Cuenta?";
+"profile.delete_account_message" = "Esto eliminará permanentemente todos tus datos. Esta acción no se puede deshacer.";
+"profile.sign_out_title" = "¿Cerrar Sesión?";
+"profile.sign_out_message" = "Volverás como usuario invitado.";
+"profile.purchase_success" = "¡Créditos comprados exitosamente!";
+"profile.restore_success" = "¡Compras restauradas exitosamente!";
+
+// Errors
+"profile.sign_in_failed" = "Inicio de sesión fallido. Por favor intenta de nuevo.";
+"profile.purchase_failed" = "Compra fallida. Por favor intenta de nuevo.";
+"profile.delete_failed" = "Error al eliminar cuenta. Por favor contacta soporte.";
+
+// App Version
+"profile.app_version" = "Versión";
+
+// MARK: - History Screen
+"history.title" = "Historial";
+"history.search_placeholder" = "Buscar tus videos...";
+"history.empty" = "Aún no hay videos";
+"history.empty_subtitle" = "Genera tu primer video para verlo aquí.";
+"history.empty_cta" = "Generar Video";
+"history.status.completed" = "Completado";
+"history.status.processing" = "Procesando";
+"history.status.failed" = "Fallido";
+"history.status.pending" = "Pendiente";
+"history.actions.play" = "Reproducir";
+"history.actions.download" = "Descargar";
+"history.actions.share" = "Compartir";
+"history.actions.wait" = "Esperar";
+"history.actions.retry" = "Reintentar";
+"history.actions.delete" = "Eliminar";
+"history.coming_soon" = "Próximamente...";
+"history.accessibility.tap_to_view" = "Toca dos veces para ver el video";
+"history.accessibility.processing" = "El video se está procesando";
+"history.accessibility.tap_for_options" = "Toca dos veces para opciones";
+"history.accessibility.generate_first" = "Toca dos veces para generar tu primer video";
+"history.accessibility.search_hint" = "Busca en tu historial de videos por texto de solicitud";
+"history.accessibility.loading" = "Cargando historial";
+
+// MARK: - Result Screen
+"result.title" = "¡Tu Video está Listo!";
+"result.save" = "Guardar en Biblioteca";
+"result.share" = "Compartir";
+"result.regenerate" = "Regenerar";
+"result.download" = "Descargar";
+"result.prompt_label" = "Solicitud";
+"result.saving" = "Guardando...";
+"result.save_hint" = "Toca dos veces para guardar el video en la biblioteca de Fotos";
+"result.share_hint" = "Toca dos veces para compartir el video";
+"result.regenerate_hint" = "Toca dos veces para regenerar el video con la misma solicitud";
+"result.processing" = "Procesando video...";
+"result.failed" = "La generación del video falló";
+"result.loading" = "Cargando video...";
+"result.accessibility.processing" = "El video se está procesando";
+"result.accessibility.failed" = "La generación del video falló";
+"result.accessibility.loading" = "Cargando video";
+"result.accessibility.model" = "Modelo";
+"result.accessibility.credits" = "Créditos utilizados";
+"result.accessibility.video_player" = "Reproductor de video";
+"result.accessibility.video_player_hint" = "Toca dos veces para reproducir el video en pantalla completa";
+"result.home_hint" = "Toca dos veces para ir a la pantalla de inicio";
+"result.checking_status" = "Verificando estado...";
+
+// MARK: - Onboarding
+"onboarding.welcome" = "Bienvenido a Rendio AI";
+"onboarding.free_credits" = "¡Has recibido %d créditos gratis!";
+"onboarding.get_started" = "Comenzar";
+
+// MARK: - Banners
+"banner.welcome.title" = "¡Bienvenido! 🎉";
+"banner.welcome.subtitle" = "Has recibido 10 créditos gratis para comenzar";
+"banner.low_credit.title" = "Pocos créditos";
+"banner.low_credit.subtitle" = "Te quedan %d créditos";
+"banner.low_credit.action" = "Comprar Créditos";
+
+// MARK: - Alerts & Confirmations
+"alert.confirm_delete" = "¿Estás seguro de que quieres eliminar esto?";
+"alert.confirm_sign_out" = "¿Estás seguro de que quieres cerrar sesión?";
+"alert.video_saved" = "Video guardado en biblioteca";
+"alert.video_save_failed" = "Error al guardar el video";

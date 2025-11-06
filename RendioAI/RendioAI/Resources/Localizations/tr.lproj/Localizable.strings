@@ -1,0 +1,209 @@
+/*
+   Localizable.strings (Turkish)
+   Rendio AI
+*/
+
+// MARK: - Home Screen
+"home_title" = "Rendio AI";
+"home_subtitle" = "Minimum sürtünme, maksimum eğlence.";
+"home_search_placeholder" = "Modelleri, kategorileri veya videoları ara...";
+"home_quota_warning" = "Uyarı: Düşük kredi (%d kaldı)";
+"home_upgrade_button" = "Yükselt";
+"home_featured_models" = "Öne Çıkan Modeller";
+"home_all_models" = "Tüm Modeller";
+"home_no_models_found" = "Model bulunamadı. Aramanızı ayarlamayı deneyin.";
+"home_loading" = "Modeller yükleniyor...";
+"home.accessibility.search_label" = "Model ara";
+"home.accessibility.search_hint" = "Model adı veya kategoriye göre ara";
+"home.accessibility.tap_to_view" = "Model detaylarını görmek için çift dokunun";
+"home.accessibility.carousel_label" = "Öne çıkan modeller kutusu, sayfa %d / %d";
+"home.accessibility.carousel_hint" = "Öne çıkan modelleri görmek için sağa veya sola kaydırın";
+"home.accessibility.loading" = "Modeller yükleniyor";
+
+// MARK: - Error Messages
+"error.network.failure" = "Ağ bağlantısı başarısız oldu. Lütfen internet bağlantınızı kontrol edin.";
+"error.network.timeout" = "Bağlantı zaman aşımına uğradı. Lütfen tekrar deneyin.";
+"error.network.invalid_response" = "Sunucudan geçersiz yanıt alındı.";
+"error.credit.insufficient" = "Bu videoyu oluşturmak için yeterli krediniz yok.";
+"error.validation.prompt_required" = "Lütfen video oluşturmadan önce bir istek girin.";
+"error.validation.image_required" = "Lütfen video oluşturmadan önce bir görsel seçin.";
+"error.model.not_found" = "Model bulunamadı. Lütfen tekrar deneyin.";
+"error.auth.unauthorized" = "Bu işlemi gerçekleştirme yetkiniz yok.";
+"error.auth.device_invalid" = "Cihaz kimlik doğrulaması başarısız oldu. Lütfen uygulamayı yeniden başlatın.";
+"error.general.unexpected" = "Bir şeyler yanlış gitti. Lütfen daha sonra tekrar deneyin.";
+
+// MARK: - Tab Bar
+"tab.home" = "Ana Sayfa";
+"tab.history" = "Geçmiş";
+"tab.profile" = "Profil";
+
+// MARK: - Common UI
+"common.ok" = "Tamam";
+"common.cancel" = "İptal";
+"common.done" = "Bitti";
+"common.save" = "Kaydet";
+"common.delete" = "Sil";
+"common.retry" = "Tekrar Dene";
+"common.close" = "Kapat";
+"common.back" = "Geri";
+"common.next" = "İleri";
+"common.skip" = "Atla";
+"common.loading" = "Yükleniyor...";
+"common.error" = "Hata";
+"common.success" = "Başarılı";
+"common.warning" = "Uyarı";
+"common.accessibility.disabled" = "Buton devre dışı";
+"common.accessibility.clear_search" = "Aramayı temizle";
+"common.accessibility.clear_search_hint" = "Arama metnini temizlemek için çift dokunun";
+
+// MARK: - Credits & Premium
+"credits.title" = "Krediler";
+"credits.remaining" = "%d kredi kaldı";
+"credits.insufficient_title" = "Yetersiz Kredi";
+"credits.insufficient_message" = "Bu videoyu oluşturmak için %d krediye ihtiyacınız var, ancak sadece %d krediniz var.";
+"credits.buy_more" = "Daha Fazla Kredi Satın Al";
+"credits.free_tier" = "Ücretsiz Katman";
+"credits.premium_tier" = "Premium Katman";
+
+// MARK: - Model Detail Screen
+"model_detail.title" = "Model Detayları";
+"model_detail.description" = "Açıklama";
+"model_detail.cost" = "Maliyet: %d kredi";
+"model_detail.generate_button" = "Video Oluştur";
+"model_detail.generating" = "Oluşturuluyor...";
+"model_detail.prompt_label" = "Video İsteğiniz";
+"model_detail.prompt_placeholder" = "Video fikrinizi açıklayın...";
+"model_detail.image_label" = "Görsel";
+"model_detail.select_image" = "Görsel Seç";
+"model_detail.image_required" = "Bu model için görsel gereklidir";
+"model_detail.settings_title" = "Ayarlar";
+"model_detail.settings" = "Ayarlar";
+"model_detail.duration_label" = "Süre";
+"model_detail.duration" = "Süre";
+"model_detail.resolution_label" = "Çözünürlük";
+"model_detail.aspect_ratio_label" = "En-Boy Oranı";
+"model_detail.resolution" = "Çözünürlük";
+"model_detail.fps_label" = "Saniye Başına Kare";
+"model_detail.fps" = "FPS";
+"model_detail.cost_info" = "Bu oluşturma %d krediye mal olacak.";
+"model_detail.tip" = "İpucu: En iyi sonuçlar için istekleri kısa ve net tutun.";
+"credits_short" = "kredi";
+
+// MARK: - Profile Screen
+"profile.title" = "Profil";
+"profile.credits" = "Krediler";
+"profile.coming_soon" = "Yakında...";
+"profile.settings" = "Ayarlar";
+"profile.language" = "Dil";
+"profile.theme" = "Tema";
+"profile.sign_in" = "Apple ile Giriş Yap";
+"profile.sign_out" = "Çıkış Yap";
+"profile.delete_account" = "Hesabı Sil";
+
+// Account Section
+"profile.account_title" = "Hesap";
+"profile.restore_purchases" = "Satın Alımları Geri Yükle";
+
+// Credit Section
+"profile.credits_remaining" = "%d kredi";
+"profile.buy_credits" = "Kredi Satın Al";
+"profile.view_history" = "Geçmişi Görüntüle";
+"profile.guest_cannot_purchase" = "Kredi satın almak için giriş yapın";
+
+// User Info
+"profile.guest_user" = "Misafir Kullanıcı";
+"profile.tier_free" = "Ücretsiz Katman";
+"profile.tier_premium" = "Premium Katman";
+"profile.email_hidden" = "—";
+
+// Theme Options
+"profile.theme_system" = "Sistem";
+"profile.theme_light" = "Açık";
+"profile.theme_dark" = "Koyu";
+
+// Language Options
+"profile.language_english" = "English";
+"profile.language_turkish" = "Türkçe";
+"profile.language_spanish" = "Español";
+
+// Alerts
+"profile.delete_account_title" = "Hesap Silinsin mi?";
+"profile.delete_account_message" = "Bu işlem tüm verilerinizi kalıcı olarak silecektir. Bu işlem geri alınamaz.";
+"profile.sign_out_title" = "Çıkış Yapılsın mı?";
+"profile.sign_out_message" = "Misafir kullanıcı olarak geri döneceksiniz.";
+"profile.purchase_success" = "Krediler başarıyla satın alındı!";
+"profile.restore_success" = "Satın alımlar başarıyla geri yüklendi!";
+
+// Errors
+"profile.sign_in_failed" = "Giriş başarısız oldu. Lütfen tekrar deneyin.";
+"profile.purchase_failed" = "Satın alma başarısız oldu. Lütfen tekrar deneyin.";
+"profile.delete_failed" = "Hesap silme başarısız oldu. Lütfen destek ile iletişime geçin.";
+
+// App Version
+"profile.app_version" = "Sürüm";
+
+// MARK: - History Screen
+"history.title" = "Geçmiş";
+"history.search_placeholder" = "Videolarınızı ara...";
+"history.empty" = "Henüz video yok";
+"history.empty_subtitle" = "İlk videonuzu oluşturun ve burada görün.";
+"history.empty_cta" = "Video Oluştur";
+"history.status.completed" = "Tamamlandı";
+"history.status.processing" = "İşleniyor";
+"history.status.failed" = "Başarısız";
+"history.status.pending" = "Beklemede";
+"history.actions.play" = "Oynat";
+"history.actions.download" = "İndir";
+"history.actions.share" = "Paylaş";
+"history.actions.wait" = "Bekle";
+"history.actions.retry" = "Yeniden Dene";
+"history.actions.delete" = "Sil";
+"history.coming_soon" = "Yakında...";
+"history.accessibility.tap_to_view" = "Videoyu görüntülemek için çift dokunun";
+"history.accessibility.processing" = "Video işleniyor";
+"history.accessibility.tap_for_options" = "Seçenekler için çift dokunun";
+"history.accessibility.generate_first" = "İlk videonuzu oluşturmak için çift dokunun";
+"history.accessibility.search_hint" = "İstek metnine göre video geçmişinizde arama yapın";
+"history.accessibility.loading" = "Geçmiş yükleniyor";
+
+// MARK: - Result Screen
+"result.title" = "Videonuz Hazır!";
+"result.save" = "Kaydet";
+"result.share" = "Paylaş";
+"result.regenerate" = "Yeniden Oluştur";
+"result.download" = "İndir";
+"result.prompt_label" = "İstek";
+"result.saving" = "Kaydediliyor...";
+"result.save_hint" = "Videoyu Fotoğraflar kütüphanesine kaydetmek için çift dokunun";
+"result.share_hint" = "Videoyu paylaşmak için çift dokunun";
+"result.regenerate_hint" = "Aynı istekle videoyu yeniden oluşturmak için çift dokunun";
+"result.processing" = "Video işleniyor...";
+"result.failed" = "Video oluşturma başarısız oldu";
+"result.loading" = "Video yükleniyor...";
+"result.accessibility.processing" = "Video işleniyor";
+"result.accessibility.failed" = "Video oluşturma başarısız oldu";
+"result.accessibility.loading" = "Video yükleniyor";
+"result.accessibility.model" = "Model";
+"result.accessibility.credits" = "Kullanılan krediler";
+"result.accessibility.video_player" = "Video oynatıcı";
+"result.accessibility.video_player_hint" = "Tam ekranda video oynatmak için çift dokunun";
+"result.home_hint" = "Ana ekrana gitmek için çift dokunun";
+"result.checking_status" = "Durum kontrol ediliyor...";
+
+// MARK: - Onboarding
+"onboarding.welcome" = "Rendio AI'ya Hoş Geldiniz";
+"onboarding.free_credits" = "%d ücretsiz kredi aldınız!";
+"onboarding.get_started" = "Başla";
+
+// MARK: - Banners
+"banner.welcome.title" = "Hoş Geldiniz! 🎉";
+"banner.welcome.subtitle" = "Başlamak için 10 ücretsiz kredi aldınız";
+"banner.low_credit.title" = "Düşük kredi";
+"banner.low_credit.subtitle" = "%d krediniz kaldı";
+"banner.low_credit.action" = "Kredi Satın Al";
+
+// MARK: - Alerts & Confirmations
+"alert.confirm_delete" = "Bunu silmek istediğinizden emin misiniz?";
+"alert.confirm_sign_out" = "Çıkış yapmak istediğinizden emin misiniz?";
+"alert.video_saved" = "Video kütüphaneye kaydedildi";
+"alert.video_save_failed" = "Video kaydedilemedi";

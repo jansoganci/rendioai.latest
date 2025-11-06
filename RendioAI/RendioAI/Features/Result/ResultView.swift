@@ -1,0 +1,309 @@
+//
+//  ResultView.swift
+//  RendioAI
+//
+//  Created by Rendio AI Team
+//
+
+import SwiftUI
+import Foundation
+
+struct ResultView: View {
+    let jobId: String
+    let themeId: String?
+    
+    @StateObject private var viewModel: ResultViewModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var shareItems: [Any] = []
+    @State private var showingShareSheet = false
+    @State private var regenerateThemeId: String?
+    @State private var regeneratePrompt: String?
+    
+    init(jobId: String, themeId: String? = nil) {
+        self.jobId = jobId
+        self.themeId = themeId
+        self._viewModel = StateObject(wrappedValue: ResultViewModel(jobId: jobId))
+    }
+    
+    var body: some View {
+        ZStack {
+            // Background
+            Color("SurfaceBase")
+                .ignoresSafeArea()
+            
+            if viewModel.isLoading {
+                // Initial loading state
+                loadingView
+            } else {
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Header
+                        headerView
+                            .padding(.horizontal, 16)
+                            .padding(.top, 8)
+                        
+                        // Video Player
+                        VideoPlayerView(
+                            videoURL: viewModel.videoURL,
+                            isProcessing: viewModel.isProcessing,
+                            hasFailed: viewModel.hasFailed
+                        )
+                        .padding(.horizontal, 16)
+                        .padding(.top, 16)
+                        
+                        // Info Card (only show if job exists)
+                        if let job = viewModel.videoJob {
+                            ResultInfoCard(
+                                prompt: job.prompt,
+                                modelName: job.model_name,
+                                creditsUsed: job.credits_used
+                            )
+                            .padding(.horizontal, 16)
+                        }
+                        
+                        // Action Buttons
+                        ActionButtonsRow(
+                            canSave: viewModel.canSave,
+                            canShare: viewModel.canShare,
+                            isSaving: viewModel.isSaving,
+                            onSave: {
+                                viewModel.saveToLibrary()
+                            },
+                            onShare: {
+                                handleShare()
+                            },
+                            onRegenerate: {
+                                handleRegenerate()
+                            }
+                        )
+                        .padding(.horizontal, 16)
+                        .padding(.top, 8)
+                        
+                        // Polling indicator (if processing)
+                        if viewModel.isPolling {
+                            pollingIndicator
+                                .padding(.top, 8)
+                        }
+                        
+                        // Bottom padding
+                        Spacer()
+                            .frame(height: 32)
+                    }
+                }
+            }
+        }
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                backButton
+            }
+            
+            ToolbarItem(placement: .navigationBarTrailing) {
+                homeButton
+            }
+        }
+        .onAppear {
+            viewModel.loadJobStatus()
+        }
+        .onDisappear {
+            viewModel.stopPolling()
+        }
+        .sheet(isPresented: $showingShareSheet) {
+            ShareSheet(activityItems: shareItems)
+        }
+        .alert(NSLocalizedString("common.error", comment: "Error"), isPresented: $viewModel.showingErrorAlert) {
+            Button(NSLocalizedString("common.ok", comment: "OK"), role: .cancel) { }
+        } message: {
+            if let errorMessage = viewModel.errorMessage {
+                Text(NSLocalizedString(errorMessage, comment: "Error message"))
+            }
+        }
+        .alert(NSLocalizedString("common.success", comment: "Success"), isPresented: $viewModel.showingSuccessAlert) {
+            Button(NSLocalizedString("common.ok", comment: "OK"), role: .cancel) { }
+        } message: {
+            if let successMessage = viewModel.successMessage {
+                Text(NSLocalizedString(successMessage, comment: "Success message"))
+            }
+        }
+        .navigationDestination(isPresented: Binding(
+            get: { regenerateThemeId != nil },
+            set: { if !$0 { regenerateThemeId = nil; regeneratePrompt = nil } }
+        )) {
+            if let themeId = regenerateThemeId {
+                ModelDetailView(themeId: themeId, initialPrompt: regeneratePrompt)
+            }
+        }
+    }
+    
+    // MARK: - Subviews
+    
+    private var loadingView: some View {
+        VStack(spacing: 16) {
+            ProgressView()
+                .tint(Color("BrandPrimary"))
+                .scaleEffect(1.5)
+            
+            Text(NSLocalizedString("result.loading", comment: "Loading video"))
+                .font(.body)
+                .foregroundColor(Color("TextSecondary"))
+        }
+        .accessibilityLabel(NSLocalizedString("result.accessibility.loading", comment: "Loading video"))
+    }
+    
+    private var headerView: some View {
+        VStack(spacing: 8) {
+            Text(NSLocalizedString("result.title", comment: "Your Video is Ready!"))
+                .font(.title2)
+                .fontWeight(.semibold)
+                .foregroundColor(Color("TextPrimary"))
+            
+            if viewModel.isProcessing {
+                Text(NSLocalizedString("result.processing", comment: "Processing video..."))
+                    .font(.subheadline)
+                    .foregroundColor(Color("TextSecondary"))
+            } else if viewModel.hasFailed {
+                Text(NSLocalizedString("result.failed", comment: "Video generation failed"))
+                    .font(.subheadline)
+                    .foregroundColor(Color("AccentError"))
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .multilineTextAlignment(.center)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(headerAccessibilityLabel)
+    }
+    
+    private var backButton: some View {
+        Button(action: {
+            dismiss()
+        }) {
+            Image(systemName: "chevron.left")
+                .font(.title3)
+                .fontWeight(.semibold)
+                .foregroundColor(Color("TextPrimary"))
+        }
+        .accessibilityLabel(NSLocalizedString("common.back", comment: "Back button"))
+    }
+    
+    private var homeButton: some View {
+        Button(action: {
+            // Navigate to Home tab
+            // This will be handled by dismissing to root
+            dismiss()
+        }) {
+            Image(systemName: "house.fill")
+                .font(.title3)
+                .foregroundColor(Color("TextPrimary"))
+        }
+        .accessibilityLabel(NSLocalizedString("tab.home", comment: "Home tab"))
+        .accessibilityHint(NSLocalizedString("result.home_hint", comment: "Double tap to go to home"))
+    }
+    
+    private var pollingIndicator: some View {
+        HStack(spacing: 8) {
+            ProgressView()
+                .progressViewStyle(.circular)
+                .scaleEffect(0.8)
+                .tint(Color("BrandPrimary"))
+            
+            Text(NSLocalizedString("result.checking_status", comment: "Checking status..."))
+                .font(.caption)
+                .foregroundColor(Color("TextSecondary"))
+        }
+        .padding(.vertical, 8)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(NSLocalizedString("result.checking_status", comment: "Checking status..."))
+    }
+    
+    // MARK: - Private Methods
+    
+    private func handleShare() {
+        guard let videoURL = viewModel.videoURL else {
+            return
+        }
+        
+        // Prepare share items first, then show sheet
+        Task {
+            do {
+                let localURL: URL
+                if videoURL.scheme == "http" || videoURL.scheme == "https" {
+                    // Download remote video
+                    localURL = try await StorageService.shared.downloadVideo(url: videoURL)
+                } else {
+                    // Use local URL
+                    localURL = videoURL
+                }
+                
+                // Verify file exists before sharing
+                guard FileManager.default.fileExists(atPath: localURL.path) else {
+                    throw AppError.invalidResponse
+                }
+                
+                // Prepare share items and show sheet
+                await MainActor.run {
+                    shareItems = [localURL]
+                    // Only show sheet if we have valid items
+                    if !shareItems.isEmpty {
+                        showingShareSheet = true
+                    }
+                }
+            } catch {
+                // Handle error
+                await MainActor.run {
+                    viewModel.handleError(error)
+                }
+            }
+        }
+    }
+    
+    private func handleRegenerate() {
+        // Get prompt for regeneration
+        let prompt = viewModel.getPromptForRegeneration()
+        
+        // Get themeId
+        guard let themeId = themeId else {
+            // If themeId not available, just dismiss
+            dismiss()
+            return
+        }
+        
+        // Set up navigation to ModelDetailView with prompt
+        // We'll navigate after dismissing
+        regeneratePrompt = prompt
+        regenerateThemeId = themeId
+        
+        // Dismiss current view (goes back to ModelDetailView)
+        // Then navigationDestination will trigger to create new ModelDetailView with prompt
+        dismiss()
+    }
+    
+    // MARK: - Accessibility
+    
+    private var headerAccessibilityLabel: String {
+        var label = NSLocalizedString("result.title", comment: "Your Video is Ready!")
+        
+        if viewModel.isProcessing {
+            label += ". \(NSLocalizedString("result.processing", comment: "Processing video..."))"
+        } else if viewModel.hasFailed {
+            label += ". \(NSLocalizedString("result.failed", comment: "Video generation failed"))"
+        }
+        
+        return label
+    }
+}
+
+// MARK: - Preview
+
+#Preview("Light Mode - Processing") {
+    NavigationStack {
+        ResultView(jobId: "preview-job-id")
+    }
+    .preferredColorScheme(.light)
+}
+
+#Preview("Dark Mode - Completed") {
+    NavigationStack {
+        ResultView(jobId: "preview-job-id")
+    }
+    .preferredColorScheme(.dark)
+}

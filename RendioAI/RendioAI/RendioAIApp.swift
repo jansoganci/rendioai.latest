@@ -1,0 +1,41 @@
+//
+//  RendioAIApp.swift
+//  RendioAI
+//
+//  Created by Can Soğancı on 4.11.2025.
+//
+
+import SwiftUI
+
+@main
+struct RendioAIApp: App {
+    @StateObject private var themeObserver = ThemeObserver()
+    @StateObject private var localizationManager = LocalizationManager.shared
+    
+    init() {
+        // Set language preference at app launch (before any views render)
+        // This must happen before any NSLocalizedString is called
+        let defaults = UserDefaultsManager.shared
+        
+        // If language is not set, default to "en" and save it
+        if UserDefaults.standard.string(forKey: "app.settings.language") == nil {
+            defaults.language = "en"
+        }
+        
+        let savedLanguage = defaults.language
+        UserDefaults.standard.set([savedLanguage, "en"], forKey: "AppleLanguages")
+        UserDefaults.standard.synchronize()
+        
+        // Force Bundle to use our language preference
+        // This must be done before any view renders
+    }
+
+    var body: some Scene {
+        WindowGroup {
+            SplashView()
+                .preferredColorScheme(themeObserver.colorScheme)
+                .environmentObject(themeObserver)
+                .environmentObject(localizationManager)
+        }
+    }
+}
