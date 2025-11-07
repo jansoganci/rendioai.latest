@@ -8,7 +8,16 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { logEvent } from '../_shared/logger.ts'
-import { checkFalAIStatus, getFalAIResult } from '../_shared/falai-adapter.ts'
+import { checkFalAIStatus } from '../_shared/falai-adapter.ts'
+import {
+  handleFinalStatus,
+  handlePendingWithoutProvider,
+  handleCompletedStatus,
+  handleFailedStatus,
+  handleInProgressStatus,
+  handleProviderError,
+  type JobData
+} from './status-handlers.ts'
 
 serve(async (req) => {
   try {
@@ -38,13 +47,13 @@ serve(async (req) => {
       )
     }
 
-    // Initialize Supabase client
+    // 3. Initialize Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // 3. Get job from database
+    // 4. Get job from database
     const { data: job, error: jobError } = await supabaseClient
       .from('video_jobs')
       .select(`
@@ -79,48 +88,26 @@ serve(async (req) => {
       )
     }
 
-    // 4. If job is already completed or failed, return current status with full job details
-    if (job.status === 'completed' || job.status === 'failed') {
-      // Get model name from joined models table
-      const model = job.models as any
+    const jobData = job as unknown as JobData
       
+    // 5. If job is already completed or failed, return current status
+    if (jobData.status === 'completed' || jobData.status === 'failed') {
+      const response = handleFinalStatus(jobData)
       return new Response(
-        JSON.stringify({
-          job_id: job.job_id,
-          status: job.status,
-          prompt: job.prompt,
-          model_name: model?.name || '',
-          credits_used: job.credits_used,
-          video_url: job.video_url,
-          thumbnail_url: job.thumbnail_url,
-          error_message: job.error_message,
-          created_at: job.created_at
-        }),
+        JSON.stringify(response),
         { 
           headers: { 'Content-Type': 'application/json' } 
         }
       )
     }
 
-    // 5. If still pending/processing, check FalAI status
-    if (job.status === 'pending' || job.status === 'processing') {
-      if (!job.provider_job_id) {
-        logEvent('get_video_status_no_provider_job_id', { job_id }, 'warn')
-        
-        // Get model name from joined models table
-        const modelForNoProvider = job.models as any
-        
+    // 6. If still pending/processing, check FalAI status
+    if (jobData.status === 'pending' || jobData.status === 'processing') {
+      // No provider_job_id - return current status
+      if (!jobData.provider_job_id) {
+        const response = handlePendingWithoutProvider(jobData)
         return new Response(
-          JSON.stringify({
-            job_id: job.job_id,
-            status: job.status,
-            prompt: job.prompt,
-            model_name: modelForNoProvider?.name || '',
-            credits_used: job.credits_used,
-            video_url: null,
-            thumbnail_url: null,
-            created_at: job.created_at
-          }),
+          JSON.stringify(response),
           { 
             headers: { 'Content-Type': 'application/json' } 
           }
@@ -128,208 +115,60 @@ serve(async (req) => {
       }
 
       try {
-        const model = job.models as any
+        const model = jobData.models as any
         const providerStatus = await checkFalAIStatus(
           model.provider_model_id,
-          job.provider_job_id
+          jobData.provider_job_id
         )
 
         logEvent('falai_status_check', {
           job_id,
-          provider_job_id: job.provider_job_id,
+          provider_job_id: jobData.provider_job_id,
           falai_status: providerStatus.status
         })
 
-        // 6. Handle completed status
+        // Handle different provider statuses
         if (providerStatus.status === 'COMPLETED') {
-          // Strategy: Try multiple methods to get the video URL
-          // 1. Check if video URL is already in providerStatus (from checkFalAIStatus)
-          // 2. If response_url exists, fetch directly from it (most reliable)
-          // 3. Fall back to getFalAIResult with constructed URL
-          
-          let videoUrl = providerStatus.video?.url
-          let result: any = null
-          
-          // If not found, try fetching from response_url first (most reliable)
-          if (!videoUrl && providerStatus.response_url) {
-            try {
-              const apiKey = Deno.env.get('FALAI_API_KEY')
-              if (apiKey) {
-                const responseUrlResponse = await fetch(providerStatus.response_url, {
-                  method: 'GET',
-                  headers: {
-                    'Authorization': `Key ${apiKey}`,
-                    'Content-Type': 'application/json'
-                  }
-                })
-                
-                if (responseUrlResponse.ok) {
-                  const responseUrlData = await responseUrlResponse.json()
-                  videoUrl = responseUrlData.video?.url
-                  if (videoUrl) {
-                    result = {
-                      video: responseUrlData.video,
-                      video_id: responseUrlData.video_id
-                    }
-                  }
-                }
-              }
-            } catch (responseUrlError: any) {
-              console.error('[get-video-status] Error fetching from response_url:', responseUrlError.message)
-            }
-          }
-          
-          // If still not found, try getFalAIResult (fallback)
-          if (!videoUrl) {
-            try {
-              result = await getFalAIResult(
-                model.provider_model_id,
-                job.provider_job_id
-              )
+          const response = await handleCompletedStatus(
+            jobData,
+            providerStatus,
+            supabaseClient
+          )
 
-              videoUrl = result.video?.url
-            } catch (resultError: any) {
-              console.error('[get-video-status] Error calling getFalAIResult:', resultError.message)
-              
-              logEvent('get_falai_result_error', {
-                job_id,
-                provider_job_id: job.provider_job_id,
-                error: resultError.message
-              }, 'error')
-            }
-          }
-
-          if (videoUrl) {
-            // Update job in database with video URL
-            const { error: updateError } = await supabaseClient
-              .from('video_jobs')
-              .update({
-                status: 'completed',
-                video_url: videoUrl,
-                thumbnail_url: null, // Skip thumbnails for Phase 2
-                completed_at: new Date().toISOString()
-              })
-              .eq('job_id', job_id)
-
-            if (updateError) {
-              console.error('[get-video-status] Database update error:', updateError.message)
-              logEvent('get_video_status_update_error', { 
-                job_id,
-                error: updateError.message 
-              }, 'error')
-              // Continue anyway - return the video URL
-            }
-
-            logEvent('video_generation_completed', {
-              job_id,
-              provider_job_id: job.provider_job_id,
-              video_url: videoUrl
-            })
-
-            // Get model name from joined models table
-            const modelForResponse = job.models as any
-
+          // If video URL not found, keep current status (don't update)
+          if (response) {
             return new Response(
-              JSON.stringify({
-                job_id: job.job_id,
-                status: 'completed',
-                prompt: job.prompt,
-                model_name: modelForResponse?.name || '',
-                credits_used: job.credits_used,
-                video_url: videoUrl,
-                thumbnail_url: null,
-                created_at: job.created_at
-              }),
+              JSON.stringify(response),
               { 
                 headers: { 'Content-Type': 'application/json' } 
               }
             )
-          } else {
-            console.error('[get-video-status] Video URL not found after COMPLETED status', {
-              job_id,
-              provider_job_id: job.provider_job_id
-            })
-            
-            logEvent('video_url_missing_after_completion', {
-              job_id,
-              provider_job_id: job.provider_job_id
-            }, 'error')
-            
-            // Don't update status - keep it as processing so we can retry
-            // The next poll might find the video URL
           }
+          // Fall through to return current status if video URL not found
         }
 
-        // 7. Handle failed status
         if (providerStatus.status === 'FAILED') {
-          const { error: updateError } = await supabaseClient
-            .from('video_jobs')
-            .update({
-              status: 'failed',
-              error_message: providerStatus.error || 'Video generation failed'
-            })
-            .eq('job_id', job_id)
-
-          if (updateError) {
-            logEvent('get_video_status_failed_update_error', { 
-              job_id,
-              error: updateError.message 
-            }, 'error')
-          }
-
-          logEvent('video_generation_failed', {
-            job_id,
-            provider_job_id: job.provider_job_id,
-            error: providerStatus.error
-          })
-
-          // Note: Credits already deducted, but we could refund here if needed
-          // For now, we'll handle refunds in Phase 6 (retry logic)
-
-          // Get model name from joined models table
-          const modelForFailed = job.models as any
-
+          const response = await handleFailedStatus(
+            jobData,
+            providerStatus,
+            supabaseClient
+          )
           return new Response(
-            JSON.stringify({
-              job_id: job.job_id,
-              status: 'failed',
-              prompt: job.prompt,
-              model_name: modelForFailed?.name || '',
-              credits_used: job.credits_used,
-              video_url: null,
-              thumbnail_url: null,
-              error_message: providerStatus.error || 'Video generation failed',
-              created_at: job.created_at
-            }),
+            JSON.stringify(response),
             { 
               headers: { 'Content-Type': 'application/json' } 
             }
           )
         }
 
-        // 8. Update status to "processing" if it's in progress
-        if (providerStatus.status === 'IN_PROGRESS' && job.status === 'pending') {
-          await supabaseClient
-            .from('video_jobs')
-            .update({ status: 'processing' })
-            .eq('job_id', job_id)
-        }
-
-        // 9. Return current status (IN_PROGRESS or IN_QUEUE) with full job details
-        // Get model name from joined models table
-        const modelForStatus = job.models as any
-
+        // Handle IN_PROGRESS or IN_QUEUE
+        const response = await handleInProgressStatus(
+          jobData,
+          providerStatus,
+          supabaseClient
+        )
         return new Response(
-          JSON.stringify({
-            job_id: job.job_id,
-            status: job.status === 'pending' && providerStatus.status === 'IN_PROGRESS' ? 'processing' : job.status,
-            prompt: job.prompt,
-            model_name: modelForStatus?.name || '',
-            credits_used: job.credits_used,
-            video_url: job.video_url,
-            thumbnail_url: job.thumbnail_url,
-            created_at: job.created_at
-          }),
+          JSON.stringify(response),
           { 
             headers: { 'Content-Type': 'application/json' } 
           }
@@ -337,27 +176,9 @@ serve(async (req) => {
 
       } catch (providerError) {
         // If provider check fails, return current DB status
-        logEvent('get_video_status_provider_check_failed', { 
-          job_id,
-          provider_job_id: job.provider_job_id,
-          error: providerError.message 
-        }, 'error')
-        
-        // Don't fail the request - return current status
-        // Get model name from joined models table
-        const modelForError = job.models as any
-        
+        const response = handleProviderError(jobData, providerError)
         return new Response(
-          JSON.stringify({
-            job_id: job.job_id,
-            status: job.status,
-            prompt: job.prompt,
-            model_name: modelForError?.name || '',
-            credits_used: job.credits_used,
-            video_url: job.video_url,
-            thumbnail_url: job.thumbnail_url,
-            created_at: job.created_at
-          }),
+          JSON.stringify(response),
           { 
             headers: { 'Content-Type': 'application/json' } 
           }
@@ -365,14 +186,10 @@ serve(async (req) => {
       }
     }
 
-    // 9. Return current status
+    // 7. Fallback: Return current status
+    const response = handleFinalStatus(jobData)
     return new Response(
-      JSON.stringify({
-        job_id: job.job_id,
-        status: job.status,
-        video_url: job.video_url,
-        thumbnail_url: job.thumbnail_url
-      }),
+      JSON.stringify(response),
       { 
         headers: { 'Content-Type': 'application/json' } 
       }
@@ -393,4 +210,3 @@ serve(async (req) => {
     )
   }
 })
-

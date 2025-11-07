@@ -18,7 +18,7 @@ struct ModelDetailView: View {
     init(themeId: String, initialPrompt: String? = nil) {
         self.themeId = themeId
         self.initialPrompt = initialPrompt
-        self._viewModel = StateObject(wrappedValue: ModelDetailViewModel(themeId: themeId))
+        self._viewModel = StateObject(wrappedValue: ModelDetailViewModel(themeId: themeId, initialPrompt: initialPrompt))
     }
     
     var body: some View {
@@ -86,11 +86,8 @@ struct ModelDetailView: View {
                             .padding(.top, 12)
                             .padding(.bottom, 100) // Space for fixed button
                     }
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        hideKeyboard()
-                    }
                 }
+                .scrollDismissesKeyboard(.immediately)
             }
         }
         .navigationBarBackButtonHidden(true)
@@ -106,13 +103,8 @@ struct ModelDetailView: View {
         }
         .onAppear {
             viewModel.loadModelDetail()
-            
-            // Prefill prompt if provided (for regeneration)
-            if let prompt = initialPrompt, viewModel.prompt.isEmpty {
-                viewModel.prompt = prompt
-            }
         }
-        .onChange(of: viewModel.generatedJobId) { oldValue, newValue in
+        .onChange(of: viewModel.generatedJobId) { newValue in
             if let jobId = newValue {
                 generatedJobId = jobId
             }

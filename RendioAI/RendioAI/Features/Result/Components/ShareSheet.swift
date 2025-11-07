@@ -22,7 +22,7 @@ struct ShareSheet: UIViewControllerRepresentable {
         if let popover = controller.popoverPresentationController {
             // Get the window scene to find the root view controller
             if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-               let window = windowScene.windows.first,
+               let window = windowScene.windows.first(where: { $0.isKeyWindow }),
                let rootViewController = window.rootViewController {
                 popover.sourceView = rootViewController.view
                 popover.sourceRect = CGRect(x: rootViewController.view.bounds.midX,
@@ -36,9 +36,7 @@ struct ShareSheet: UIViewControllerRepresentable {
     }
     
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {
-        // Update activity items if they changed
-        // Note: UIActivityViewController doesn't support updating items after creation,
-        // but we keep this for potential future use
+        // No updates needed
     }
 }
 

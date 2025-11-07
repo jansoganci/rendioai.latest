@@ -21,13 +21,19 @@ class OnboardingStateManager {
 
     /// Unique device identifier from backend
     var deviceId: String? {
-        get { defaults.deviceId }
+        get {
+            printStateSummary()
+            return defaults.deviceId
+        }
         set { defaults.deviceId = newValue }
     }
 
     /// Whether onboarding has been completed
     var isOnboardingCompleted: Bool {
-        get { defaults.onboardingCompleted }
+        get {
+            printStateSummary()
+            return defaults.onboardingCompleted
+        }
         set { defaults.onboardingCompleted = newValue }
     }
 
@@ -68,6 +74,7 @@ class OnboardingStateManager {
         print("   - Device ID: \(state.deviceId)")
         print("   - First Launch: \(state.isFirstLaunch)")
         print("   - Should Show Welcome: \(state.shouldShowWelcomeBanner)")
+        printStateSummary()
     }
 
     /// Complete onboarding with fallback data (when network fails)
@@ -83,6 +90,7 @@ class OnboardingStateManager {
         print("✅ OnboardingStateManager: Completed with fallback")
         print("   - Fallback Device ID: \(deviceId)")
         print("   - User ID: \(deviceId)")
+        printStateSummary()
     }
 
     // MARK: - Reset & Debug
@@ -91,6 +99,7 @@ class OnboardingStateManager {
     func resetOnboardingState() {
         defaults.clearOnboardingState()
         print("🗑️ OnboardingStateManager: All state cleared")
+        printStateSummary()
     }
 
     /// Get current onboarding state summary (for debugging)
@@ -109,6 +118,13 @@ class OnboardingStateManager {
     /// Print current state to console (for debugging)
     func debugPrintState() {
         print("🔍 \(getStateSummary())")
+    }
+
+    func printStateSummary() {
+        print("🧭 OnboardingStateManager → device_id:", defaults.deviceId ?? "nil")
+        print("🧭 OnboardingStateManager → user_id:", defaults.currentUserId ?? "nil")
+        print("🧭 OnboardingStateManager → credits_remaining:", (UserDefaults.standard.object(forKey: "app.cachedCredits") as? Int) ?? 0)
+        print("🧭 OnboardingStateManager → onboarding_completed:", defaults.onboardingCompleted)
     }
 }
 

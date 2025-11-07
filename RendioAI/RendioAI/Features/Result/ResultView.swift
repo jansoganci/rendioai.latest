@@ -8,14 +8,20 @@
 import SwiftUI
 import Foundation
 
+// Extension to make URL Identifiable for sheet presentation
+extension URL: Identifiable {
+    public var id: String {
+        self.absoluteString
+    }
+}
+
 struct ResultView: View {
     let jobId: String
     let themeId: String?
     
     @StateObject private var viewModel: ResultViewModel
     @Environment(\.dismiss) private var dismiss
-    @State private var shareItems: [Any] = []
-    @State private var showingShareSheet = false
+    @State private var shareURL: URL?
     @State private var regenerateThemeId: String?
     @State private var regeneratePrompt: String?
     
@@ -108,8 +114,22 @@ struct ResultView: View {
         .onDisappear {
             viewModel.stopPolling()
         }
-        .sheet(isPresented: $showingShareSheet) {
-            ShareSheet(activityItems: shareItems)
+        .sheet(item: $shareURL) { url in
+            ShareLink(item: url) {
+                VStack(spacing: 16) {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 48))
+                        .foregroundColor(Color("BrandPrimary"))
+                    
+                    Text(NSLocalizedString("result.share", comment: "Share"))
+                        .font(.headline)
+                        .foregroundColor(Color("TextPrimary"))
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Rectangle())
+            }
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
         }
         .alert(NSLocalizedString("common.error", comment: "Error"), isPresented: $viewModel.showingErrorAlert) {
             Button(NSLocalizedString("common.ok", comment: "OK"), role: .cancel) { }
@@ -127,10 +147,21 @@ struct ResultView: View {
         }
         .navigationDestination(isPresented: Binding(
             get: { regenerateThemeId != nil },
-            set: { if !$0 { regenerateThemeId = nil; regeneratePrompt = nil } }
+            set: { 
+                print("🔵 navigationDestination setter called: \($0)")
+                if !$0 { 
+                    regenerateThemeId = nil
+                    regeneratePrompt = nil
+                } else if regenerateThemeId != nil {
+                    print("🔵 navigationDestination triggered with themeId: \(regenerateThemeId!)")
+                }
+            }
         )) {
             if let themeId = regenerateThemeId {
                 ModelDetailView(themeId: themeId, initialPrompt: regeneratePrompt)
+                    .onAppear {
+                        print("🔵 ModelDetailView appeared in navigationDestination with themeId: \(themeId)")
+                    }
             }
         }
     }
@@ -218,63 +249,53 @@ struct ResultView: View {
     // MARK: - Private Methods
     
     private func handleShare() {
+        print("🟢 Share button tapped")
+        
         guard let videoURL = viewModel.videoURL else {
+            print("❌ No videoURL available")
             return
         }
         
-        // Prepare share items first, then show sheet
-        Task {
-            do {
-                let localURL: URL
-                if videoURL.scheme == "http" || videoURL.scheme == "https" {
-                    // Download remote video
-                    localURL = try await StorageService.shared.downloadVideo(url: videoURL)
-                } else {
-                    // Use local URL
-                    localURL = videoURL
-                }
-                
-                // Verify file exists before sharing
-                guard FileManager.default.fileExists(atPath: localURL.path) else {
-                    throw AppError.invalidResponse
-                }
-                
-                // Prepare share items and show sheet
-                await MainActor.run {
-                    shareItems = [localURL]
-                    // Only show sheet if we have valid items
-                    if !shareItems.isEmpty {
-                        showingShareSheet = true
-                    }
-                }
-            } catch {
-                // Handle error
-                await MainActor.run {
-                    viewModel.handleError(error)
-                }
-            }
-        }
+        print("📹 Video URL: \(videoURL)")
+        print("✅ Sharing URL directly (no download) - iOS will handle it")
+        
+        // Share URL directly - no download needed
+        // iOS ShareLink can handle remote URLs and will download if needed
+        shareURL = videoURL
+        print("✅ ShareLink presentation triggered with URL: \(videoURL)")
     }
     
     private func handleRegenerate() {
+        print("🟢 Regenerate button tapped")
+        
         // Get prompt for regeneration
         let prompt = viewModel.getPromptForRegeneration()
+        print("🧠 Using prompt: \(prompt)")
         
         // Get themeId
+        print("🔍 Checking themeId...")
         guard let themeId = themeId else {
             // If themeId not available, just dismiss
+            print("⚠️ No themeId, dismissing view")
             dismiss()
             return
         }
         
+        print("✅ ThemeId found: \(themeId)")
+        
         // Set up navigation to ModelDetailView with prompt
-        // We'll navigate after dismissing
+        // navigationDestination will trigger automatically when regenerateThemeId is set
+        // This will push ModelDetailView on top of ResultView
+        print("🚀 Setting up navigation...")
         regeneratePrompt = prompt
         regenerateThemeId = themeId
+        print("🚀 Navigating to ModelDetailView with themeId: \(themeId)")
+        print("🚀 Prompt will be: \(prompt)")
+        print("✅ Navigation state set - ModelDetailView will be pushed on top")
+        print("✅ User can navigate back to ResultView if needed")
         
-        // Dismiss current view (goes back to ModelDetailView)
-        // Then navigationDestination will trigger to create new ModelDetailView with prompt
-        dismiss()
+        // Don't dismiss ResultView - let navigationDestination handle it
+        // ModelDetailView will be pushed on top, user can go back if needed
     }
     
     // MARK: - Accessibility

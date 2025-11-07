@@ -21,11 +21,16 @@ class HistoryViewModel: ObservableObject {
     
     private let historyService: HistoryServiceProtocol
     
-    // handled by DeviceCheckService and OnboardingStateManager (device ID management)
-    // Phase 2: Will use authenticated user ID from AuthService
-    private var userId: String? {
-        // Placeholder - should be retrieved from DeviceCheck or Auth service
-        "user-placeholder-id"
+    private var onboardingManager: OnboardingStateManager {
+        OnboardingStateManager.shared
+    }
+    
+    private var resolvedUserId: String {
+        onboardingManager.deviceId ?? UserDefaultsManager.shared.currentUserId ?? ""
+    }
+    
+    private var resolvedDeviceId: String {
+        onboardingManager.deviceId ?? ""
     }
     
     // MARK: - Computed Properties
@@ -74,7 +79,15 @@ class HistoryViewModel: ObservableObject {
             errorMessage = nil
             
             do {
+                let userId = resolvedUserId
+                let deviceId = resolvedDeviceId
+                print("🧭 HistoryViewModel → Final user_id:", userId)
+                print("🧭 HistoryViewModel → Final device_id:", deviceId)
+                print("📤 HistoryViewModel → Request body:", ["user_id": userId, "device_id": deviceId])
+                print("📤 HistoryViewModel → URL:", "\(AppConfig.supabaseURL)/functions/v1/get-video-jobs")
                 let jobs = try await historyService.fetchVideoJobs(userId: userId)
+                print("📥 HistoryViewModel → Response:", jobs)
+                print("📥 HistoryViewModel → Status Code:", "handled inside service")
                 historySections = groupJobsByDate(jobs)
             } catch {
                 handleError(error)
@@ -87,7 +100,15 @@ class HistoryViewModel: ObservableObject {
     /// Refresh history (pull-to-refresh)
     func refreshHistory() async {
         do {
+            let userId = resolvedUserId
+            let deviceId = resolvedDeviceId
+            print("🧭 HistoryViewModel → Final user_id:", userId)
+            print("🧭 HistoryViewModel → Final device_id:", deviceId)
+            print("📤 HistoryViewModel → Request body:", ["user_id": userId, "device_id": deviceId])
+            print("📤 HistoryViewModel → URL:", "\(AppConfig.supabaseURL)/functions/v1/get-video-jobs")
             let jobs = try await historyService.fetchVideoJobs(userId: userId)
+            print("📥 HistoryViewModel → Response:", jobs)
+            print("📥 HistoryViewModel → Status Code:", "handled inside service")
             historySections = groupJobsByDate(jobs)
         } catch {
             handleError(error)
@@ -98,7 +119,15 @@ class HistoryViewModel: ObservableObject {
     func deleteJob(jobId: String) {
         Task {
             do {
+                let userId = resolvedUserId
+                let deviceId = resolvedDeviceId
+                print("🧭 HistoryViewModel → Final user_id:", userId)
+                print("🧭 HistoryViewModel → Final device_id:", deviceId)
+                print("📤 HistoryViewModel → Request body:", ["job_id": jobId, "user_id": userId, "device_id": deviceId])
+                print("📤 HistoryViewModel → URL:", "\(AppConfig.supabaseURL)/functions/v1/delete-video-job")
                 try await historyService.deleteVideoJob(jobId: jobId)
+                print("📥 HistoryViewModel → Response:", "Delete request completed for job_id: \(jobId)")
+                print("📥 HistoryViewModel → Status Code:", "handled inside service")
                 
                 // Remove job from local sections
                 historySections = historySections.compactMap { section in

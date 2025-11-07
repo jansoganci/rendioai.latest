@@ -8,7 +8,7 @@
 .env.*.local
 
 # Supabase
-supabase/
+#supabase/
 
 # macOS
 .DS_Store
@@ -36,6 +36,7 @@ node_modules/
 
 # Test files
 tests/
-#docs/
+docs/
+.archive_unused_configs/
 .claude/
 .cursor/

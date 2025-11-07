@@ -25,6 +25,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { logEvent } from '../_shared/logger.ts'
+import { verifyWithApple, getCreditsForProduct } from '../_shared/apple-iap-verifier.ts'
 
 serve(async (req) => {
   try {
@@ -64,8 +65,6 @@ serve(async (req) => {
     }, 'info')
 
     // 1. Verify transaction with Apple's App Store Server API
-    // TODO (Phase 0.5): Implement full Apple App Store Server API verification
-    // For now, using simplified verification (mock)
     const verification = await verifyWithApple(transaction_id)
 
     if (!verification.valid) {
@@ -83,14 +82,8 @@ serve(async (req) => {
       )
     }
 
-    // 2. Get product configuration (NEVER trust client - always use server-side config)
-    const productConfig: Record<string, number> = {
-      'com.rendio.credits.10': 10,
-      'com.rendio.credits.50': 50,
-      'com.rendio.credits.100': 100
-    }
-
-    const creditsToAdd = productConfig[verification.product_id]
+    // 2. Get credits amount for product (NEVER trust client - always use server-side config)
+    const creditsToAdd = getCreditsForProduct(verification.product_id)
 
     if (!creditsToAdd) {
       logEvent('update_credits_unknown_product', { 
@@ -174,39 +167,4 @@ serve(async (req) => {
     )
   }
 })
-
-/**
- * Simplified Apple IAP verification (mock for Phase 1)
- * 
- * TODO (Phase 0.5): Implement real Apple App Store Server API verification
- * See: backend-building-plan.md Phase 0.5 for full implementation
- * 
- * @param transactionId - Apple transaction ID
- * @returns Verification result with product_id
- */
-async function verifyWithApple(transactionId: string): Promise<{
-  valid: boolean
-  product_id: string
-}> {
-  // For Phase 1, we'll do basic validation
-  // In Phase 0.5, this will call Apple's App Store Server API v2
-  
-  if (!transactionId || transactionId.length < 10) {
-    return {
-      valid: false,
-      product_id: ''
-    }
-  }
-
-  // Mock validation - always succeeds for Phase 1
-  // Extract product ID from transaction ID pattern (for testing)
-  // In production, Apple API will return the actual product_id
-  
-  // For now, default to 10 credits package
-  // In real implementation, we'd parse the JWS response from Apple
-  return {
-    valid: true,
-    product_id: 'com.rendio.credits.10' // Mock product ID
-  }
-}
 

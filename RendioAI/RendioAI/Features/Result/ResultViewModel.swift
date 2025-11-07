@@ -144,7 +144,7 @@ class ResultViewModel: ObservableObject {
             return
         }
         
-        Task {
+        Task { @MainActor in
             isSaving = true
             errorMessage = nil
             
@@ -167,6 +167,11 @@ class ResultViewModel: ObservableObject {
                     localURL = try await storageService.downloadVideo(url: url)
                 } else {
                     localURL = url
+                }
+                
+                // Verify file exists before saving
+                guard FileManager.default.fileExists(atPath: localURL.path) else {
+                    throw AppError.invalidResponse
                 }
                 
                 // Save to Photos library

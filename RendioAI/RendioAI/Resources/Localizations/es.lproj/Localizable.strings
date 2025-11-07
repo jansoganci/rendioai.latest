@@ -168,7 +168,7 @@
 
 // MARK: - Result Screen
 "result.title" = "¡Tu Video está Listo!";
-"result.save" = "Guardar en Biblioteca";
+"result.save" = "Guardar";
 "result.share" = "Compartir";
 "result.regenerate" = "Regenerar";
 "result.download" = "Descargar";

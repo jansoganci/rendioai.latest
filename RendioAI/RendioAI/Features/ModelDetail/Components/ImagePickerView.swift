@@ -97,7 +97,7 @@ struct ImagePickerView: View {
                     .foregroundColor(Color("AccentError"))
             }
         }
-        .onChange(of: selectedItem) { oldValue, newValue in
+        .onChange(of: selectedItem) { newValue in
             Task {
                 if let newValue = newValue {
                     if let data = try? await newValue.loadTransferable(type: Data.self),

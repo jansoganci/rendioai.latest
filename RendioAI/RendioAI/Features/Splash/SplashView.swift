@@ -10,6 +10,7 @@ import SwiftUI
 struct SplashView: View {
     @StateObject private var viewModel = SplashViewModel()
     @EnvironmentObject var localizationManager: LocalizationManager
+    @EnvironmentObject var themeObserver: ThemeObserver
     @State private var scale: CGFloat = 0.7
     @State private var opacity: Double = 0.0
 
@@ -64,6 +65,8 @@ struct SplashView: View {
         }
         .fullScreenCover(isPresented: $viewModel.isOnboardingComplete) {
             ContentView()
+                .preferredColorScheme(themeObserver.colorScheme)
+                .environmentObject(themeObserver)
                 .environmentObject(localizationManager)
         }
     }

@@ -43,7 +43,7 @@ struct SettingsSection: View {
                     label: "profile.language".localized,
                     selection: $selectedLanguage
                 )
-                .onChange(of: selectedLanguage) { _, newValue in
+                .onChange(of: selectedLanguage) { newValue in
                     onLanguageChange?(newValue)
                 }
 
@@ -55,7 +55,7 @@ struct SettingsSection: View {
                     label: "profile.theme".localized,
                     selection: $selectedTheme
                 )
-                .onChange(of: selectedTheme) { _, newValue in
+                .onChange(of: selectedTheme) { newValue in
                     onThemeChange?(newValue)
                 }
             }

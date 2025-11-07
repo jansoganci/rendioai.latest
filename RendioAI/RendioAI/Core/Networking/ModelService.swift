@@ -16,8 +16,8 @@ protocol ModelServiceProtocol {
 class ModelService: ModelServiceProtocol {
     static let shared = ModelService()
 
-    private let baseURL = "https://ojcnjxzctnwbmupggoxq.supabase.co"
-    private let anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qY25qeHpjdG53Ym11cGdnb3hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzMjkzNjIsImV4cCI6MjA3NzkwNTM2Mn0._bKw_0kYf65SxYC8ik3_SMdMgUYoxgVbisvCdRfYo08"
+    private var baseURL: String { AppConfig.supabaseURL }
+    private var anonKey: String { AppConfig.supabaseAnonKey }
     private let session: URLSession
     
     init(session: URLSession = .shared) {
@@ -25,9 +25,8 @@ class ModelService: ModelServiceProtocol {
     }
 
     func fetchModels() async throws -> [ModelPreview] {
-        // Query Supabase REST API directly (no endpoint exists yet - Phase 3 feature)
-        // Fetch only available models
-        guard let url = URL(string: "\(baseURL)/rest/v1/models?is_available=eq.true&select=id,name,category,thumbnail_url,is_featured&order=is_featured.desc,name.asc") else {
+        // Use Edge Function endpoint: GET /functions/v1/get-models
+        guard let url = URL(string: "\(baseURL)/functions/v1/get-models") else {
             print("❌ ModelService: Invalid URL")
             throw AppError.invalidResponse
         }
@@ -37,8 +36,6 @@ class ModelService: ModelServiceProtocol {
         request.setValue("Bearer \(anonKey)", forHTTPHeaderField: "Authorization")
         request.setValue(anonKey, forHTTPHeaderField: "apikey")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.setValue("return=representation", forHTTPHeaderField: "Prefer")
         
         let (data, response) = try await session.data(for: request)
         
@@ -54,11 +51,16 @@ class ModelService: ModelServiceProtocol {
             throw AppError.networkFailure
         }
         
+        // Decode response with models wrapper
         let decoder = JSONDecoder()
         
         do {
-            let models = try decoder.decode([ModelPreview].self, from: data)
-            return models
+            struct ModelsResponse: Codable {
+                let models: [ModelPreview]
+            }
+            
+            let modelsResponse = try decoder.decode(ModelsResponse.self, from: data)
+            return modelsResponse.models
         } catch {
             print("❌ ModelService: Failed to decode models: \(error)")
             throw AppError.invalidResponse

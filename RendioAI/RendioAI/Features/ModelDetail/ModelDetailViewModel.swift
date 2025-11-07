@@ -29,6 +29,7 @@ class ModelDetailViewModel: ObservableObject {
     // MARK: - Private Properties
     
     private let themeId: String
+    private let initialPrompt: String?
     private let themeService: ThemeServiceProtocol
     private let modelService: ModelServiceProtocol
     private let creditService: CreditServiceProtocol
@@ -74,6 +75,7 @@ class ModelDetailViewModel: ObservableObject {
     
     init(
         themeId: String,
+        initialPrompt: String? = nil,
         themeService: ThemeServiceProtocol = ThemeService.shared,
         modelService: ModelServiceProtocol = ModelService.shared,
         creditService: CreditServiceProtocol = CreditService.shared,
@@ -81,6 +83,7 @@ class ModelDetailViewModel: ObservableObject {
         imageUploadService: ImageUploadServiceProtocol = ImageUploadService.shared
     ) {
         self.themeId = themeId
+        self.initialPrompt = initialPrompt
         self.themeService = themeService
         self.modelService = modelService
         self.creditService = creditService
@@ -104,8 +107,8 @@ class ModelDetailViewModel: ObservableObject {
                 theme = themeDetail
                 activeModel = modelDetail
                 
-                // Pre-fill prompt from theme
-                prompt = themeDetail.prompt
+                // Pre-fill prompt: use initialPrompt if provided (for regeneration), otherwise use theme prompt
+                prompt = initialPrompt ?? themeDetail.prompt
                 
                 // Apply theme's default settings if available
                 if let defaultSettings = themeDetail.defaultSettings {
