@@ -188,7 +188,6 @@
 "result.accessibility.video_player" = "Video oynatıcı";
 "result.accessibility.video_player_hint" = "Tam ekranda video oynatmak için çift dokunun";
 "result.home_hint" = "Ana ekrana gitmek için çift dokunun";
-"result.checking_status" = "Durum kontrol ediliyor...";
 
 // MARK: - Onboarding
 "onboarding.welcome" = "Rendio AI'ya Hoş Geldiniz";

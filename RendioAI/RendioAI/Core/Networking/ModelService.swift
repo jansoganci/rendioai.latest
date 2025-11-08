@@ -7,6 +7,15 @@
 
 import Foundation
 
+// MARK: - Phase 5 Debug Helpers
+
+// Toggle via build configuration: Set DEBUG_PHASE5=1 in build settings to enable
+private func p5log(_ msg: String) {
+    #if DEBUG
+    print(msg)
+    #endif
+}
+
 protocol ModelServiceProtocol {
     func fetchModels() async throws -> [ModelPreview]
     func fetchModelDetail(id: String) async throws -> ModelDetail
@@ -19,47 +28,81 @@ class ModelService: ModelServiceProtocol {
     private var baseURL: String { AppConfig.supabaseURL }
     private var anonKey: String { AppConfig.supabaseAnonKey }
     private let session: URLSession
-    
+
+    // ETag cache storage
+    private var cachedModels: [ModelPreview]?
+    private var cachedETag: String?
+
     init(session: URLSession = .shared) {
         self.session = session
     }
 
     func fetchModels() async throws -> [ModelPreview] {
+        p5log("[P5][ModelService][Fetch][REQ] If-None-Match=\(cachedETag ?? "nil")")
+
         // Use Edge Function endpoint: GET /functions/v1/get-models
         guard let url = URL(string: "\(baseURL)/functions/v1/get-models") else {
             print("❌ ModelService: Invalid URL")
             throw AppError.invalidResponse
         }
-        
+
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("Bearer \(anonKey)", forHTTPHeaderField: "Authorization")
         request.setValue(anonKey, forHTTPHeaderField: "apikey")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
+
+        // Add If-None-Match header if we have a cached ETag
+        if let cachedETag = cachedETag {
+            request.setValue(cachedETag, forHTTPHeaderField: "If-None-Match")
+        }
+
         let (data, response) = try await session.data(for: request)
-        
+
         guard let httpResponse = response as? HTTPURLResponse else {
             print("❌ ModelService: Invalid response type")
             throw AppError.invalidResponse
         }
-        
+
+        // Handle 304 Not Modified - return cached models
+        if httpResponse.statusCode == 304 {
+            if let cachedModels = cachedModels {
+                p5log("[P5][ModelService][Fetch][HIT] ETag=\(cachedETag ?? "-") count=\(cachedModels.count)")
+                print("✅ ModelService: Cache hit - returning cached models")
+                return cachedModels
+            } else {
+                print("⚠️ ModelService: Got 304 but no cached models, refetching")
+                throw AppError.invalidResponse
+            }
+        }
+
         guard (200...299).contains(httpResponse.statusCode) else {
             if let errorString = String(data: data, encoding: .utf8) {
                 print("❌ ModelService: Backend error: \(errorString)")
             }
             throw AppError.networkFailure
         }
-        
+
         // Decode response with models wrapper
         let decoder = JSONDecoder()
-        
+
         do {
             struct ModelsResponse: Codable {
                 let models: [ModelPreview]
             }
-            
+
             let modelsResponse = try decoder.decode(ModelsResponse.self, from: data)
+
+            // Update cache with new models
+            cachedModels = modelsResponse.models
+
+            // Extract and store ETag from response headers
+            if let newETag = httpResponse.allHeaderFields["ETag"] as? String {
+                cachedETag = newETag
+                p5log("[P5][ModelService][Fetch][MISS] ETag=\(newETag) count=\(modelsResponse.models.count)")
+                print("✅ ModelService: Updated cache with ETag: \(newETag)")
+            }
+
             return modelsResponse.models
         } catch {
             print("❌ ModelService: Failed to decode models: \(error)")

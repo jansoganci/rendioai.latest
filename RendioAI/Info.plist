@@ -2,7 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- Standard bundle metadata -->
+	<key>API_MAX_RETRIES</key>
+	<string>$(API_MAX_RETRIES)</string>
+	<key>API_TIMEOUT</key>
+	<string>$(API_TIMEOUT)</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleExecutable</key>
@@ -19,31 +22,27 @@
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>ENABLE_DEBUG_MODE</key>
+	<string>$(ENABLE_DEBUG_MODE)</string>
+	<key>ENABLE_LOGGING</key>
+	<string>$(ENABLE_LOGGING)</string>
+	<key>ENVIRONMENT_NAME</key>
+	<string>$(ENVIRONMENT_NAME)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>SUPABASE_ANON_KEY</key>
+	<string>$(SUPABASE_ANON_KEY)</string>
+	<key>SUPABASE_URL</key>
+	<string>$(SUPABASE_URL)</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
+	<key>UIStatusBarStyle</key>
+	<string></string>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-
-	<!-- Custom configuration values injected from .xcconfig -->
-	<key>SUPABASE_URL</key>
-	<string>$(SUPABASE_URL)</string>
-	<key>SUPABASE_ANON_KEY</key>
-	<string>$(SUPABASE_ANON_KEY)</string>
-	<key>ENVIRONMENT_NAME</key>
-	<string>$(ENVIRONMENT_NAME)</string>
-	<key>API_TIMEOUT</key>
-	<string>$(API_TIMEOUT)</string>
-	<key>API_MAX_RETRIES</key>
-	<string>$(API_MAX_RETRIES)</string>
-	<key>ENABLE_LOGGING</key>
-	<string>$(ENABLE_LOGGING)</string>
-	<key>ENABLE_DEBUG_MODE</key>
-	<string>$(ENABLE_DEBUG_MODE)</string>
 </dict>
 </plist>

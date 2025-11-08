@@ -22,24 +22,17 @@ backend/
 │
 ├── MVP_FINALIZATION.md                      ← ✅ MVP testing checklist
 ├── CREDIT_SYSTEM_AUDIT.md                   ← Credit system deep dive
+├── FRONTEND_BACKEND_ANALYSIS.md             ← Frontend/backend sync playbook
+├── CROSS_AUDIT_VERIFICATION.md              ← Audit verification log
 │
 ├── implementation/                          ← Implementation plans
 │   ├── backend-building-plan.md            ← Main plan (Smart MVP)
 │   ├── backend-building-plan-production.md ← Production plan (Option A)
-│   ├── backend-options-guide.md            ← Decision guide
-│   ├── PHASE_2_IMPLEMENTATION_PLAN.md      ← Phase 2 details
-│   ├── PHASE_2_IMPLEMENTATION_SUMMARY.md   ← Phase 2 summary
-│   └── phase1-backend-integration-plan.md  ← iOS integration guide
+│   └── backend-options-guide.md            ← Decision guide
 │
 └── audits/                                  ← Historical audit reports
-    ├── PHASE_0_IMPLEMENTATION_AUDIT.md
-    ├── PHASE_0_RE_AUDIT_AFTER_FIXES.md
-    ├── PHASE_1_IMPLEMENTATION_AUDIT.md
-    ├── PHASE_1_OTHER_LLM_AUDIT_COMPARISON.md
-    ├── BACKEND_BUILDING_PLAN_AUDIT_REPORT.md
     ├── BACKEND_DOCUMENTATION_AUDIT_REPORT.md
-    ├── CRITICAL_ISSUES_FIXED.md
-    └── FIXES_BEFORE_AFTER.md
+    └── CRITICAL_ISSUES_FIXED.md
 ```
 
 ---
@@ -107,24 +100,19 @@ backend/
 
 ---
 
-#### `implementation/PHASE_2_IMPLEMENTATION_PLAN.md`
-**Phase 2: Video Generation**  
-**Status:** ✅ Implemented  
-**Contains:** FalAI integration, endpoints, storage strategy
+### **Sync & Validation**
+
+#### `FRONTEND_BACKEND_ANALYSIS.md`
+**Purpose:** Identify six gaps between the Swift client and live Supabase backend  
+**Use When:** Wiring services, adjusting payloads, or validating response models  
+**Includes:** Concrete Swift fixes, backend expectations, validation checklist
 
 ---
 
-#### `implementation/PHASE_2_IMPLEMENTATION_SUMMARY.md`
-**Phase 2 Summary**  
-**Status:** ✅ Complete  
-**Contains:** What was built, technical decisions
-
----
-
-#### `implementation/phase1-backend-integration-plan.md`
-**iOS Integration Guide**  
-**Use When:** Connecting iOS app to backend  
-**Scope:** Phase 1 frontend-to-backend integration
+#### `CROSS_AUDIT_VERIFICATION.md`
+**Purpose:** Confirm every claim from the analysis against the actual codebase  
+**Use When:** Double-checking backend responses or proving mismatches exist  
+**Includes:** 35-point verification table with verdicts and confidence scores
 
 ---
 
@@ -133,15 +121,9 @@ backend/
 **Purpose:** Reference for past audits and fixes  
 **Use When:** Understanding historical context or debugging issues
 
-**Files:**
-- `PHASE_0_IMPLEMENTATION_AUDIT.md` - Phase 0 audit
-- `PHASE_0_RE_AUDIT_AFTER_FIXES.md` - Phase 0 re-audit
-- `PHASE_1_IMPLEMENTATION_AUDIT.md` - Phase 1 audit
-- `PHASE_1_OTHER_LLM_AUDIT_COMPARISON.md` - External audit comparison
-- `BACKEND_BUILDING_PLAN_AUDIT_REPORT.md` - Initial plan audit
-- `BACKEND_DOCUMENTATION_AUDIT_REPORT.md` - Documentation audit
+- **Files:**
+- `BACKEND_DOCUMENTATION_AUDIT_REPORT.md` - Documentation consistency audit
 - `CRITICAL_ISSUES_FIXED.md` - Critical fixes summary
-- `FIXES_BEFORE_AFTER.md` - Visual comparison of fixes
 
 ---
 
@@ -159,10 +141,7 @@ backend/
 → `MVP_FINALIZATION.md`
 
 **Integrate iOS app with backend**
-→ `implementation/phase1-backend-integration-plan.md`
-
-**See what was built in Phase 2**
-→ `implementation/PHASE_2_IMPLEMENTATION_SUMMARY.md`
+→ `FRONTEND_BACKEND_ANALYSIS.md` (pair with `CROSS_AUDIT_VERIFICATION.md` to validate)
 
 **Review past audits**
 → `audits/` folder

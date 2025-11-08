@@ -48,7 +48,7 @@ struct ModelDetailView: View {
                         PromptInputField(
                             text: $viewModel.prompt,
                             placeholder: NSLocalizedString("model_detail.prompt_placeholder", comment: "Prompt placeholder"),
-                            isEnabled: !viewModel.isGenerating
+                            isEnabled: true
                         )
                         .padding(.horizontal, 16)
                         .padding(.top, 24)

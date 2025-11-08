@@ -178,7 +178,6 @@
 "result.accessibility.video_player" = "Video player";
 "result.accessibility.video_player_hint" = "Double tap to play video in fullscreen";
 "result.home_hint" = "Double tap to go to home screen";
-"result.checking_status" = "Checking status...";
 
 // MARK: - Onboarding (Placeholder for future)
 "onboarding.welcome" = "Welcome to Rendio AI";

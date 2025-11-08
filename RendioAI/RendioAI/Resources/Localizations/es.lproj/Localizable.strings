@@ -188,7 +188,6 @@
 "result.accessibility.video_player" = "Reproductor de video";
 "result.accessibility.video_player_hint" = "Toca dos veces para reproducir el video en pantalla completa";
 "result.home_hint" = "Toca dos veces para ir a la pantalla de inicio";
-"result.checking_status" = "Verificando estado...";
 
 // MARK: - Onboarding
 "onboarding.welcome" = "Bienvenido a Rendio AI";

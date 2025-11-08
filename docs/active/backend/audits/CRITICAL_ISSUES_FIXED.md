@@ -10,6 +10,10 @@
 
 All 6 critical issues identified in the backend documentation audit have been successfully fixed. Documentation now aligns with `backend-building-plan.md` Version 2.1 (Smart MVP Edition).
 
+### Before & After Reference
+- Every fix below now includes the same diff highlights that used to live in `FIXES_BEFORE_AFTER.md`.
+- This file is the single source of truth for problem statements, applied diffs, and related follow-up actions.
+
 ---
 
 ## ✅ Fixed Issues

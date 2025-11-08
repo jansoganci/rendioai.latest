@@ -84,13 +84,7 @@ struct ResultView: View {
                         )
                         .padding(.horizontal, 16)
                         .padding(.top, 8)
-                        
-                        // Polling indicator (if processing)
-                        if viewModel.isPolling {
-                            pollingIndicator
-                                .padding(.top, 8)
-                        }
-                        
+
                         // Bottom padding
                         Spacer()
                             .frame(height: 32)
@@ -112,7 +106,7 @@ struct ResultView: View {
             viewModel.loadJobStatus()
         }
         .onDisappear {
-            viewModel.stopPolling()
+            viewModel.stopMonitoring()
         }
         .sheet(item: $shareURL) { url in
             ShareLink(item: url) {
@@ -228,22 +222,6 @@ struct ResultView: View {
         }
         .accessibilityLabel(NSLocalizedString("tab.home", comment: "Home tab"))
         .accessibilityHint(NSLocalizedString("result.home_hint", comment: "Double tap to go to home"))
-    }
-    
-    private var pollingIndicator: some View {
-        HStack(spacing: 8) {
-            ProgressView()
-                .progressViewStyle(.circular)
-                .scaleEffect(0.8)
-                .tint(Color("BrandPrimary"))
-            
-            Text(NSLocalizedString("result.checking_status", comment: "Checking status..."))
-                .font(.caption)
-                .foregroundColor(Color("TextSecondary"))
-        }
-        .padding(.vertical, 8)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(NSLocalizedString("result.checking_status", comment: "Checking status..."))
     }
     
     // MARK: - Private Methods

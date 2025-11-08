@@ -16,7 +16,7 @@
 → `CREDIT_SYSTEM_AUDIT.md`
 
 ### **"How do I integrate iOS with backend?"**
-→ `implementation/phase1-backend-integration-plan.md`
+→ `FRONTEND_BACKEND_ANALYSIS.md` (check verification log for proof)
 
 ---
 
@@ -25,15 +25,17 @@
 ### **Root (`backend/`)**
 - `MVP_FINALIZATION.md` - Pre-testing checklist
 - `CREDIT_SYSTEM_AUDIT.md` - Credit system deep dive
+- `FRONTEND_BACKEND_ANALYSIS.md` - Frontend wiring guide
+- `CROSS_AUDIT_VERIFICATION.md` - Proof the analysis is accurate
 - `README.md` - Full navigation guide
 
 ### **`implementation/`**
-- Active implementation plans
-- Phase-by-phase guides
-- iOS integration guide
+- `backend-building-plan.md` - Option B (Smart MVP)
+- `backend-building-plan-production.md` - Option A (Production)
+- `backend-options-guide.md` - Decision helper
 
 ### **`audits/`**
-- Historical audit reports
+- Legacy audit reports
 - Fix documentation
 - Reference only (not active)
 
@@ -43,9 +45,9 @@
 
 | Phase | Status | Document |
 |-------|--------|----------|
-| Phase 0 (Database) | ✅ Done | `audits/PHASE_0_IMPLEMENTATION_AUDIT.md` |
-| Phase 1 (Users) | ✅ Done | `audits/PHASE_1_IMPLEMENTATION_AUDIT.md` |
-| Phase 2 (Video) | ✅ Done | `implementation/PHASE_2_IMPLEMENTATION_SUMMARY.md` |
+| Phase 0 (Database) | ✅ Done | `implementation/backend-building-plan.md` (Phase 0) |
+| Phase 1 (Users) | ✅ Done | `implementation/backend-building-plan.md` (Phase 1) |
+| Phase 2 (Video) | ✅ Done | `implementation/backend-building-plan.md` (Phase 2) |
 | Phase 0.5 (Security) | ⚠️ Mocked | `MVP_FINALIZATION.md` |
 | Phase 3 (Refunds) | ⚠️ Partial | `MVP_FINALIZATION.md` |
 

@@ -7,6 +7,15 @@
 
 import SwiftUI
 
+// MARK: - Phase 5 Debug Helpers
+
+// Toggle via build configuration: Set DEBUG_PHASE5=1 in build settings to enable
+private func p5log(_ msg: String) {
+    #if DEBUG
+    print(msg)
+    #endif
+}
+
 @MainActor
 class ResultViewModel: ObservableObject {
     // MARK: - Published Properties
@@ -23,14 +32,13 @@ class ResultViewModel: ObservableObject {
     @Published var showingErrorAlert: Bool = false
     @Published var showingSuccessAlert: Bool = false
     @Published var successMessage: String?
-    @Published var isPolling: Bool = false
-    
+
     // MARK: - Private Properties
-    
+
     private let jobId: String
     private let resultService: ResultServiceProtocol
     private let storageService: StorageServiceProtocol
-    private var pollingTask: Task<Void, Never>?
+    private var subscriptionTask: Task<Void, Never>?
     
     // MARK: - Computed Properties
     
@@ -78,66 +86,110 @@ class ResultViewModel: ObservableObject {
         Task {
             isLoading = true
             errorMessage = nil
-            
+
             do {
                 let job = try await resultService.fetchVideoJob(jobId: jobId)
                 updateJobState(job)
-                
-                // If job is still processing, start polling
+
+                // If job is still processing, start monitoring via Realtime
                 if job.isPending || job.isProcessing {
-                    startPolling()
+                    startMonitoring()
                 }
-                
+
             } catch {
                 handleError(error)
             }
-            
+
             isLoading = false
         }
     }
     
-    /// Start polling job status
-    func startPolling() {
-        // Stop any existing polling
-        stopPolling()
-        
+    /// Start monitoring job status via Realtime subscriptions
+    func startMonitoring() {
+        p5log("[P5][ResultVM][Start] job_id=\(jobId)")
+
+        // Stop any existing monitoring
+        stopMonitoring()
+
         // Don't start if already completed or failed
         guard isProcessing else {
             return
         }
-        
-        isPolling = true
-        
-        pollingTask = Task {
+
+        subscriptionTask = Task {
             do {
-                // Poll with max 60 attempts, 5 second intervals
-                let job = try await resultService.pollJobStatus(
-                    jobId: jobId,
+                let result = try await withThrowingTaskGroup(of: Bool.self) { group in
+                    // Realtime task
+                    group.addTask {
+                        for await job in self.resultService.subscribeToJobUpdates(jobId: self.jobId) {
+                            p5log("[P5][ResultVM][Realtime][UPDATE] job_id=\(self.jobId) status=\(job.status.rawValue)")
+                            await MainActor.run { self.updateJobState(job) }
+                            if job.status == .completed || job.status == .failed {
+                                // Stream path wins - job completed via realtime
+                                p5log("[P5][ResultVM][Race][WIN]=Realtime job_id=\(self.jobId)")
+                                return true
+                            }
+                        }
+                        // Stream ended without completion
+                        return false
+                    }
+
+                    // Timeout task (30s)
+                    group.addTask {
+                        try await Task.sleep(for: .seconds(30))
+                        return false
+                    }
+
+                    // First finished wins
+                    let winner = try await group.next() ?? false
+                    group.cancelAll()
+                    return winner
+                }
+
+                if result == true {
+                    // Realtime completed normally
+                    print("🧵 ResultViewModel: Realtime completed via stream")
+                    return
+                }
+
+                // Timeout or no realtime updates -> fallback
+                p5log("[P5][ResultVM][Race][WIN]=Timeout job_id=\(self.jobId) -> FallbackPolling")
+                p5log("[P5][ResultVM][Fallback][START] job_id=\(self.jobId)")
+                print("⏱️ ResultViewModel: Realtime timeout/no updates, falling back to polling")
+                let job = try await self.resultService.pollJobStatus(
+                    jobId: self.jobId,
                     maxAttempts: 60,
                     pollInterval: 5.0
                 )
-                
-                // Update state with final job status
-                updateJobState(job)
-                
-                // Stop polling (completed or failed)
-                isPolling = false
-                
+                await MainActor.run { self.updateJobState(job) }
+                p5log("[P5][ResultVM][Fallback][END] job_id=\(self.jobId) status=\(job.status.rawValue)")
             } catch {
-                // If polling fails, stop polling and show error
-                isPolling = false
-                handleError(error)
+                // Realtime failed -> fallback to polling
+                p5log("[P5][ResultVM][Race][ERR] job_id=\(self.jobId) error=\(error.localizedDescription)")
+                p5log("[P5][ResultVM][Fallback][START] job_id=\(self.jobId)")
+                print("⚠️ ResultViewModel: Realtime failed: \(error), using polling fallback")
+                do {
+                    let job = try await self.resultService.pollJobStatus(
+                        jobId: self.jobId,
+                        maxAttempts: 60,
+                        pollInterval: 5.0
+                    )
+                    await MainActor.run { self.updateJobState(job) }
+                    p5log("[P5][ResultVM][Fallback][END] job_id=\(self.jobId) status=\(job.status.rawValue)")
+                } catch {
+                    await MainActor.run { self.handleError(error) }
+                }
             }
         }
     }
-    
-    /// Stop polling job status
-    func stopPolling() {
-        pollingTask?.cancel()
-        pollingTask = nil
-        isPolling = false
+
+    /// Stop monitoring job status
+    func stopMonitoring() {
+        p5log("[P5][ResultVM][Stop] job_id=\(jobId)")
+        subscriptionTask?.cancel()
+        subscriptionTask = nil
     }
-    
+
     /// Save video to Photos library
     func saveToLibrary() {
         guard canSave, let url = videoURL else {
@@ -232,7 +284,7 @@ class ResultViewModel: ObservableObject {
     // MARK: - Deinitialization
 
     deinit {
-        pollingTask?.cancel()
+        subscriptionTask?.cancel()
     }
 }
 
