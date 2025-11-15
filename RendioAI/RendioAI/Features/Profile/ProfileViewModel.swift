@@ -22,6 +22,7 @@ class ProfileViewModel: ObservableObject {
 
     @Published var user: User?
     @Published var isLoading: Bool = false
+    @Published var isLoadingCredits: Bool = false
 
     // Unified Alert State
     @Published var showingAlert: Bool = false
@@ -128,7 +129,10 @@ class ProfileViewModel: ObservableObject {
 
     func loadUserProfile() {
         Task {
-            isLoading = true
+            // Only show full-page loading if no user data exists (first load)
+            let isFirstLoad = (user == nil)
+            isLoading = isFirstLoad
+
             do {
                 // Fetch user profile first (critical - must succeed)
                 let userId = resolvedUserId
@@ -140,9 +144,10 @@ class ProfileViewModel: ObservableObject {
                 let userProfile = try await userService.fetchUserProfile(userId: userId)
                 print("📥 ProfileViewModel → Response:", userProfile)
                 print("📥 ProfileViewModel → Status Code:", "handled inside service")
-                
-                // Set user profile immediately
+
+                // Set user profile immediately - UI can show now!
                 user = userProfile
+                isLoading = false  // Hide full-page spinner after profile loads
 
                 // Sync settings from user profile (for logged-in users)
                 if !userProfile.isGuest {
@@ -151,7 +156,8 @@ class ProfileViewModel: ObservableObject {
                     defaults.syncFromUser(userProfile)
                 }
 
-                // Fetch credits separately (non-critical - can fail gracefully)
+                // Fetch credits in background (non-critical - can fail gracefully)
+                isLoadingCredits = true
                 var credits: Int = userProfile.creditsRemaining // Use profile credits as fallback
                 do {
                     print("🧭 ProfileViewModel → Final user_id:", userId)
@@ -162,10 +168,11 @@ class ProfileViewModel: ObservableObject {
                     print("📥 ProfileViewModel → Response:", credits)
                     print("📥 ProfileViewModel → Status Code:", "handled inside service")
                 } catch {
-                    // If credits fail (e.g., no user_id), use profile credits or 0
+                    // If credits fail (e.g., no user_id), use profile credits
                     print("⚠️ ProfileViewModel: Failed to fetch credits: \(error)")
                     credits = userProfile.creditsRemaining
                 }
+                isLoadingCredits = false
 
                 // Update user with fetched credits
                 if var updatedUser = user {
@@ -190,8 +197,9 @@ class ProfileViewModel: ObservableObject {
             } catch {
                 // Only handle error if user profile failed (critical failure)
                 handleError(error)
+                isLoading = false
+                isLoadingCredits = false
             }
-            isLoading = false
         }
     }
 

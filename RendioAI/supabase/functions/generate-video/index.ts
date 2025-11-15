@@ -1,11 +1,14 @@
 /**
  * Generate Video Endpoint - Main Handler
  * Orchestrates the video generation workflow
+ * Includes rate limiting and monitoring
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { logEvent } from '../_shared/logger.ts'
+import { createLogger, logRateLimit, logEvent } from '../_shared/logger.ts'
+import { initSentry, captureException, flush } from '../_shared/sentry.ts'
+import { alertRateLimitViolation } from '../_shared/telegram.ts'
 
 import type { GenerateVideoRequest, ActiveModel, FinalSettings } from './types.ts'
 import {
@@ -26,10 +29,15 @@ function p5log(...args: any[]) { if (DEBUG_PHASE5) console.log(...args) }
 function p5time(label: string) { const t = Date.now(); return () => Date.now() - t }
 function truncate(s: string, max = 120) { return s.length > max ? s.substring(0, max) + '...' : s }
 
+// Initialize monitoring
+initSentry('generate-video')
+const logger = createLogger('generate-video')
+
 serve(async (req) => {
   const tAll = p5time('generate')
   const requestId = crypto.randomUUID()
-  console.log('[GENERATE-VIDEO] Request received:', req.method, req.url)
+  const startTime = Date.now()
+  logger.info('Request received', { metadata: { method: req.method, url: req.url } })
 
   try {
     // STEP A: Entry
@@ -250,7 +258,98 @@ serve(async (req) => {
       pricing_type: activeModel.pricing_type
     })
 
-    // 10. Atomically deduct credits and create job
+    // 10. Check rate limiting BEFORE deducting credits
+    console.log('[STEP 10.5] Checking rate limit...')
+    const { data: rateLimitResult, error: rateLimitError } = await supabaseClient.rpc(
+      'check_rate_limit_dynamic',
+      {
+        p_user_id: user_id,
+        p_action: 'generate_video'
+      }
+    )
+
+    if (rateLimitError) {
+      logger.error('Rate limit check failed', rateLimitError, {
+        user_id,
+        metadata: { action: 'generate_video' }
+      })
+      // Allow request if rate limit check fails (fail open)
+    } else if (rateLimitResult && !rateLimitResult.allowed) {
+      // Log rate limit violation
+      logRateLimit(
+        logger,
+        user_id,
+        'generate_video',
+        false,
+        rateLimitResult.current_count,
+        rateLimitResult.limit
+      )
+
+      // Alert for rate limit violation
+      await alertRateLimitViolation(
+        user_id,
+        'generate_video',
+        rateLimitResult.current_count,
+        rateLimitResult.limit
+      )
+
+      // Log violation to database
+      await supabaseClient.rpc('log_rate_limit_violation', {
+        p_user_id: user_id,
+        p_action: 'generate_video',
+        p_current_count: rateLimitResult.current_count,
+        p_limit: rateLimitResult.limit,
+        p_ip_address: req.headers.get('X-Forwarded-For') || req.headers.get('X-Real-IP'),
+        p_user_agent: req.headers.get('User-Agent')
+      })
+
+      logger.warn('Rate limit exceeded', {
+        user_id,
+        metadata: {
+          current_count: rateLimitResult.current_count,
+          limit: rateLimitResult.limit,
+          remaining: rateLimitResult.remaining,
+          reset_at: rateLimitResult.reset_at
+        }
+      })
+
+      return new Response(
+        JSON.stringify({
+          error: 'Rate limit exceeded',
+          message: `You have exceeded the rate limit of ${rateLimitResult.limit} videos per hour`,
+          current_count: rateLimitResult.current_count,
+          limit: rateLimitResult.limit,
+          remaining: rateLimitResult.remaining,
+          reset_at: rateLimitResult.reset_at
+        }),
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-RateLimit-Limit': String(rateLimitResult.limit),
+            'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+            'X-RateLimit-Reset': rateLimitResult.reset_at
+          }
+        }
+      )
+    } else if (rateLimitResult) {
+      // Log successful rate limit check
+      logRateLimit(
+        logger,
+        user_id,
+        'generate_video',
+        true,
+        rateLimitResult.current_count,
+        rateLimitResult.limit
+      )
+      console.log('[STEP 10.5] Rate limit check passed:', {
+        current: rateLimitResult.current_count,
+        limit: rateLimitResult.limit,
+        remaining: rateLimitResult.remaining
+      })
+    }
+
+    // 11. Atomically deduct credits and create job
     // STEP E: Atomic RPC call
     const tAtomic = p5time('atomic')
     p5log('[P5][GenerateVideo][Atomic][CALL]', {

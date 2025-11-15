@@ -14,6 +14,8 @@ struct OnboardingResponse: Codable {
     let user_id: String
     let credits_remaining: Int
     let is_new: Bool
+    let access_token: String?      // JWT token for Supabase Storage operations
+    let refresh_token: String?     // Refresh token to get new access_token
     
     // Computed properties for compatibility with existing code
     var deviceId: String { user_id }  // Use user_id as deviceId for compatibility
@@ -44,6 +46,8 @@ struct OnboardingResponse: Codable {
         case user_id
         case credits_remaining
         case is_new
+        case access_token
+        case refresh_token
     }
 }
 
@@ -95,7 +99,9 @@ extension OnboardingResponse {
         OnboardingResponse(
             user_id: "device-uuid-123",
             credits_remaining: 10,
-            is_new: true
+            is_new: true,
+            access_token: "mock-access-token",
+            refresh_token: "mock-refresh-token"
         )
     }
 
@@ -103,7 +109,9 @@ extension OnboardingResponse {
         OnboardingResponse(
             user_id: "device-uuid-456",
             credits_remaining: 5,
-            is_new: false
+            is_new: false,
+            access_token: "mock-access-token",
+            refresh_token: "mock-refresh-token"
         )
     }
 }

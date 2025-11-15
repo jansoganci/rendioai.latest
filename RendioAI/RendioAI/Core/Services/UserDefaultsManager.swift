@@ -129,9 +129,13 @@ class UserDefaultsManager {
         // CRITICAL FIX: Also save currentUserId (deviceId == user_id in OnboardingResponse)
         currentUserId = state.deviceId
         
+        // Cache credits from user object for debug display
+        UserDefaults.standard.set(state.user.creditsRemaining, forKey: "app.cachedCredits")
+        
         print("✅ Onboarding state saved:")
         print("   - Device ID: \(state.deviceId)")
         print("   - User ID: \(state.deviceId)")
+        print("   - Credits: \(state.user.creditsRemaining)")
         print("   - First Launch: \(state.isFirstLaunch)")
         print("   - Show Welcome: \(state.shouldShowWelcomeBanner)")
     }

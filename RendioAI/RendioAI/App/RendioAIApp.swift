@@ -13,6 +13,18 @@ struct RendioAIApp: App {
     @StateObject private var localizationManager = LocalizationManager.shared
     
     init() {
+        // Configure StableID first (for persistent device identification)
+        // This must happen before any device identification is needed
+        if #available(iOS 16.0, *) {
+            // Use App Store Transaction ID for best stability (iOS 16.0+)
+            Task {
+                await StableIDService.shared.configureWithAppTransactionID()
+            }
+        } else {
+            // Fallback to auto-generated ID for older iOS versions
+            StableIDService.shared.configure()
+        }
+        
         // Set language preference at app launch (before any views render)
         // This must happen before any NSLocalizedString is called
         let defaults = UserDefaultsManager.shared

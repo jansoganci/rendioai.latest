@@ -67,33 +67,25 @@ class AuthService: NSObject, AuthServiceProtocol {
         identityToken: Data?,
         authorizationCode: Data?
     ) async throws -> User {
-        // Phase 2: Replace with actual Supabase Edge Function call
-        // Endpoint: POST /api/merge-guest-to-user
-        // Body: { device_id, apple_sub, identity_token?, authorization_code? }
-        // Currently using mock data for development
+        // Delegate to UserService which has the real implementation
+        // identityToken and authorizationCode are available for future Apple verification
+        // but not needed for basic merge operation
 
-        // Simulate network delay
-        try await Task.sleep(for: .seconds(1.5))
+        print("✅ AuthService: Delegating merge to UserService")
+        print("   Device ID: \(deviceId)")
+        print("   Apple Sub: \(appleSub)")
 
-        // Mock response - merged user
-        let mergedUser = User(
-            id: UUID().uuidString,
-            email: "user@privaterelay.appleid.com",
+        let mergedUser = try await UserService.shared.mergeGuestToUser(
             deviceId: deviceId,
-            appleSub: appleSub,
-            isGuest: false,
-            tier: .free,
-            creditsRemaining: 10,
-            creditsTotal: 10,
-            initialGrantClaimed: true,
-            language: "en",
-            themePreference: "system",
-            createdAt: Date(),
-            updatedAt: Date()
+            appleSub: appleSub
         )
 
         // Phase 2: Store user credentials in Keychain
         // Phase 2: Update local auth state
+
+        print("✅ AuthService: Merge completed successfully")
+        print("   User ID: \(mergedUser.id)")
+        print("   Credits: \(mergedUser.creditsRemaining)")
 
         return mergedUser
     }

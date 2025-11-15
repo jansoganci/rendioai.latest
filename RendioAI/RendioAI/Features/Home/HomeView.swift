@@ -60,13 +60,6 @@ struct HomeView: View {
                         )
                         .padding(.top, 16)
                     }
-
-                    // Quota Warning Banner
-                    if viewModel.showQuotaWarning {
-                        quotaWarningBanner
-                            .padding(.horizontal, 16)
-                            .padding(.top, 16)
-                    }
                     
                     // Featured Themes Carousel
                     if !viewModel.featuredThemes.isEmpty {
@@ -127,10 +120,22 @@ struct HomeView: View {
                 .font(.title2)
                 .fontWeight(.semibold)
                 .foregroundColor(Color("TextPrimary"))
-            
+
             Spacer()
+
+            // Credit Badge - only shows when credits are loaded
+            if viewModel.creditsRemaining > 0 {
+                CreditBadge(
+                    creditsRemaining: viewModel.creditsRemaining,
+                    onTap: {
+                        showingPurchaseSheet = true
+                    }
+                )
+                .transition(.scale.combined(with: .opacity))
+            }
         }
         .frame(height: 44)
+        .animation(.easeInOut(duration: 0.3), value: viewModel.creditsRemaining)
     }
     
     // MARK: - Search Bar View
@@ -159,18 +164,6 @@ struct HomeView: View {
         .accessibilityElement(children: .contain)
     }
     
-    // MARK: - Quota Warning Banner
-
-    private var quotaWarningBanner: some View {
-            QuotaWarningBanner(
-                creditsRemaining: viewModel.creditsRemaining,
-                onUpgrade: {
-                    // Phase 2: Implement upgrade/purchase screen navigation
-                    // Not in MVP blueprint - deferred to post-MVP
-                }
-            )
-    }
-    
     // MARK: - Featured Themes Section
     
     private var featuredThemesSection: some View {
@@ -188,7 +181,7 @@ struct HomeView: View {
                         .tag(index)
                 }
             }
-
+            .tabViewStyle(.page(indexDisplayMode: .never))
             .frame(height: 200)
             .accessibilityElement(children: .contain)
             .accessibilityLabel(String(format: "home.accessibility.carousel_label".localized, viewModel.selectedCarouselIndex + 1, viewModel.featuredThemes.count))

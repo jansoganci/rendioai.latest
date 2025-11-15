@@ -30,6 +30,17 @@ class ImageUploadService: ImageUploadServiceProtocol {
             throw AppError.invalidResponse
         }
         
+        // Get JWT token from Keychain (preferred) or fallback to anon key
+        let authToken: String
+        if let accessToken = KeychainManager.shared.getAccessToken() {
+            authToken = accessToken
+            print("✅ ImageUploadService: Using JWT token from Keychain")
+        } else {
+            // Fallback to anon key if no token available (backward compatibility)
+            authToken = anonKey
+            print("⚠️ ImageUploadService: No JWT token found, using anon key (may fail with RLS)")
+        }
+        
         // Generate unique filename
         let filename = "input_\(UUID().uuidString).jpg"
         let filePath = "\(userId)/\(filename)"
@@ -42,7 +53,7 @@ class ImageUploadService: ImageUploadServiceProtocol {
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.setValue("Bearer \(anonKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
         request.setValue(anonKey, forHTTPHeaderField: "apikey")
         request.setValue("image/jpeg", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")

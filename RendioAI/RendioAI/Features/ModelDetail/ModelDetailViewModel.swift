@@ -214,15 +214,21 @@ class ModelDetailViewModel: ObservableObject {
                 )
                 
                 // Generate video
+                // Note: Credits are already deducted atomically by the backend in generate-video endpoint
                 let response = try await videoGenerationService.generateVideo(request: request)
                 
-                // Update credits (deduct)
-                let newCredits = try await creditService.updateCredits(
-                    change: -response.credits_used,
-                    reason: "generation"
-                )
+                // Refresh credits from backend (don't deduct again - backend already did it)
+                do {
+                    let updatedCredits = try await creditService.fetchCredits()
+                    creditsRemaining = updatedCredits
+                    print("✅ ModelDetailViewModel: Credits refreshed from backend: \(updatedCredits)")
+                } catch {
+                    // If credit refresh fails, estimate based on response
+                    // This is a fallback - credits were already deducted by backend
+                    creditsRemaining = max(0, creditsRemaining - response.credits_used)
+                    print("⚠️ ModelDetailViewModel: Failed to refresh credits, using estimate: \(creditsRemaining)")
+                }
                 
-                creditsRemaining = newCredits
                 generatedJobId = response.job_id
                 isGenerating = false
                 

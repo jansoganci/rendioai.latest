@@ -47,8 +47,9 @@ class OnboardingService: OnboardingServiceProtocol {
         request.setValue(anonKey, forHTTPHeaderField: "apikey")
 
         // Prepare body - device-check endpoint expects device_id and device_token
+        // Use StableID instead of identifierForVendor for persistent device identification
         let tokenString = token.base64EncodedString()
-        let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
+        let deviceId = StableIDService.shared.getStableID()
         let body: [String: Any] = [
             "device_id": deviceId,
             "device_token": tokenString
@@ -95,6 +96,22 @@ class OnboardingService: OnboardingServiceProtocol {
             UserDefaultsManager.shared.currentUserId = onboardingResponse.user_id
             print("✅ OnboardingService: Received user_id from backend: \(onboardingResponse.user_id)")
             print("✅ OnboardingService: Saved user_id to local storage")
+            
+            // Save auth tokens to Keychain (secure storage)
+            if let accessToken = onboardingResponse.access_token {
+                KeychainManager.shared.saveAccessToken(accessToken)
+                print("✅ OnboardingService: Saved access_token to Keychain")
+            } else {
+                print("⚠️ OnboardingService: No access_token received from backend")
+            }
+            
+            if let refreshToken = onboardingResponse.refresh_token {
+                KeychainManager.shared.saveRefreshToken(refreshToken)
+                print("✅ OnboardingService: Saved refresh_token to Keychain")
+            } else {
+                print("⚠️ OnboardingService: No refresh_token received from backend")
+            }
+            
             print("✅ Device check successful: \(onboardingResponse.isExistingUser ? "Existing" : "New") user")
             
             return onboardingResponse

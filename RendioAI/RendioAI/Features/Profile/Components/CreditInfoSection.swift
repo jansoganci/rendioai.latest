@@ -12,6 +12,7 @@ struct CreditInfoSection: View {
     let onBuyCredits: () -> Void
     let onViewHistory: () -> Void
     let canBuyCredits: Bool
+    var isLoadingCredits: Bool = false
 
     var body: some View {
         VStack(spacing: 16) {
@@ -41,10 +42,17 @@ struct CreditInfoSection: View {
                 .font(.title3)
                 .foregroundColor(Color("BrandPrimary"))
 
-            Text(creditsDisplay)
-                .font(.title3)
-                .fontWeight(.semibold)
-                .foregroundColor(Color("TextPrimary"))
+            if isLoadingCredits {
+                // Show subtle loading indicator while credits are being fetched
+                ProgressView()
+                    .scaleEffect(0.8)
+                    .tint(Color("BrandPrimary"))
+            } else {
+                Text(creditsDisplay)
+                    .font(.title3)
+                    .fontWeight(.semibold)
+                    .foregroundColor(Color("TextPrimary"))
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
@@ -96,14 +104,16 @@ struct CreditInfoSection: View {
             creditsDisplay: User.registeredPreview.creditsDisplay,
             onBuyCredits: {},
             onViewHistory: {},
-            canBuyCredits: true
+            canBuyCredits: true,
+            isLoadingCredits: false
         )
 
         CreditInfoSection(
             creditsDisplay: User.premiumPreview.creditsDisplay,
             onBuyCredits: {},
             onViewHistory: {},
-            canBuyCredits: true
+            canBuyCredits: true,
+            isLoadingCredits: false
         )
     }
     .padding()

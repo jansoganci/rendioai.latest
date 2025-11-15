@@ -1,12 +1,16 @@
 /**
  * Status Handlers
- * 
+ *
  * Handles different video job statuses and returns appropriate responses
+ * Includes video migration from FalAI to Supabase Storage
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { logEvent } from '../_shared/logger.ts'
+import { createLogger } from '../_shared/logger.ts'
+import { migrateVideoToStorage } from '../_shared/storage-utils.ts'
 import { fetchVideoUrl, type ProviderStatus } from './video-url-fetcher.ts'
+
+const logger = createLogger('status-handlers')
 
 export interface JobData {
   job_id: string
@@ -69,7 +73,10 @@ export function handleFinalStatus(job: JobData): StatusResponse {
  * Handles pending/processing status when no provider_job_id exists
  */
 export function handlePendingWithoutProvider(job: JobData): StatusResponse {
-  logEvent('get_video_status_no_provider_job_id', { job_id: job.job_id }, 'warn')
+  logger.warn('No provider job ID found', {
+    job_id: job.job_id,
+    user_id: job.user_id
+  })
   return buildStatusResponse(job)
 }
 
@@ -82,7 +89,7 @@ export async function handleCompletedStatus(
   supabaseClient: ReturnType<typeof createClient>
 ): Promise<StatusResponse | null> {
   const model = job.models as any
-  
+
   // Fetch video URL using multiple strategies
   const { videoUrl } = await fetchVideoUrl(
     providerStatus,
@@ -92,50 +99,98 @@ export async function handleCompletedStatus(
   )
 
   if (videoUrl) {
-    // Update job in database with video URL
+    // Attempt to migrate video to Supabase Storage
+    let finalVideoUrl = videoUrl
+    let migrationSuccess = false
+
+    // Only attempt migration if we have a FalAI URL
+    if (videoUrl.includes('fal.ai') || videoUrl.includes('fal.run')) {
+      logger.info('Attempting video migration from FalAI', {
+        job_id: job.job_id,
+        user_id: job.user_id,
+        metadata: { original_url: videoUrl }
+      })
+
+      const migrationResult = await migrateVideoToStorage(
+        videoUrl,
+        job.user_id,
+        job.job_id
+      )
+
+      if (migrationResult.success && migrationResult.url) {
+        finalVideoUrl = migrationResult.url
+        migrationSuccess = true
+        logger.info('Video migration successful', {
+          job_id: job.job_id,
+          user_id: job.user_id,
+          metadata: {
+            new_url: finalVideoUrl,
+            duration_ms: migrationResult.duration,
+            size_mb: migrationResult.videoSize ? (migrationResult.videoSize / (1024 * 1024)).toFixed(2) : undefined
+          }
+        })
+      } else {
+        // Migration failed, but keep FalAI URL (graceful degradation)
+        logger.warn('Video migration failed, using FalAI URL', {
+          job_id: job.job_id,
+          user_id: job.user_id,
+          metadata: {
+            error: migrationResult.error,
+            duration_ms: migrationResult.duration
+          }
+        })
+      }
+    }
+
+    // Update job in database with final video URL
     const { error: updateError } = await supabaseClient
       .from('video_jobs')
       .update({
         status: 'completed',
-        video_url: videoUrl,
+        video_url: finalVideoUrl,
         thumbnail_url: null, // Skip thumbnails for Phase 2
-        completed_at: new Date().toISOString()
+        completed_at: new Date().toISOString(),
+        // Add metadata about migration
+        metadata: {
+          migration_attempted: videoUrl !== finalVideoUrl || migrationSuccess,
+          migration_success: migrationSuccess,
+          original_url: migrationSuccess ? videoUrl : undefined
+        }
       })
       .eq('job_id', job.job_id)
 
     if (updateError) {
-      console.error('[status-handlers] Database update error:', updateError.message)
-      logEvent('get_video_status_update_error', {
+      logger.error('Database update error', updateError, {
         job_id: job.job_id,
-        error: updateError.message
-      }, 'error')
+        user_id: job.user_id
+      })
       // Continue anyway - return the video URL
     }
 
-    logEvent('video_generation_completed', {
+    logger.info('Video generation completed', {
       job_id: job.job_id,
-      provider_job_id: job.provider_job_id,
-      video_url: videoUrl
+      user_id: job.user_id,
+      metadata: {
+        provider_job_id: job.provider_job_id,
+        video_url: finalVideoUrl,
+        migration_success: migrationSuccess
+      }
     })
 
     return {
       ...buildStatusResponse(job),
       status: 'completed',
-      video_url: videoUrl,
+      video_url: finalVideoUrl,
       thumbnail_url: null
     }
   } else {
     // Video URL not found - don't update status, keep as processing for retry
-    console.error('[status-handlers] Video URL not found after COMPLETED status', {
+    logger.error('Video URL not found after COMPLETED status', undefined, {
       job_id: job.job_id,
-      provider_job_id: job.provider_job_id
+      user_id: job.user_id,
+      metadata: { provider_job_id: job.provider_job_id }
     })
-    
-    logEvent('video_url_missing_after_completion', {
-      job_id: job.job_id,
-      provider_job_id: job.provider_job_id
-    }, 'error')
-    
+
     // Return null to indicate we should keep current status
     return null
   }
@@ -150,7 +205,7 @@ export async function handleFailedStatus(
   supabaseClient: ReturnType<typeof createClient>
 ): Promise<StatusResponse> {
   const errorMessage = providerStatus.error || 'Video generation failed'
-  
+
   const { error: updateError } = await supabaseClient
     .from('video_jobs')
     .update({
@@ -160,16 +215,19 @@ export async function handleFailedStatus(
     .eq('job_id', job.job_id)
 
   if (updateError) {
-    logEvent('get_video_status_failed_update_error', {
+    logger.error('Failed to update job status', updateError, {
       job_id: job.job_id,
-      error: updateError.message
-    }, 'error')
+      user_id: job.user_id
+    })
   }
 
-  logEvent('video_generation_failed', {
+  logger.error('Video generation failed', undefined, {
     job_id: job.job_id,
-    provider_job_id: job.provider_job_id,
-    error: errorMessage
+    user_id: job.user_id,
+    metadata: {
+      provider_job_id: job.provider_job_id,
+      error: errorMessage
+    }
   })
 
   // Note: Credits already deducted, but we could refund here if needed
@@ -215,11 +273,11 @@ export async function handleInProgressStatus(
  * Handles provider check errors - returns current DB status
  */
 export function handleProviderError(job: JobData, error: any): StatusResponse {
-  logEvent('get_video_status_provider_check_failed', {
+  logger.error('Provider check failed', error, {
     job_id: job.job_id,
-    provider_job_id: job.provider_job_id,
-    error: error.message
-  }, 'error')
+    user_id: job.user_id,
+    metadata: { provider_job_id: job.provider_job_id }
+  })
 
   // Don't fail the request - return current status
   return buildStatusResponse(job)

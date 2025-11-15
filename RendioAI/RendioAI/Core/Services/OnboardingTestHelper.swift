@@ -52,7 +52,9 @@ class OnboardingTestHelper {
         let response = OnboardingResponse(
             user_id: "test-device-\(UUID().uuidString)",
             credits_remaining: credits,
-            is_new: true
+            is_new: true,
+            access_token: "test-access-token-\(UUID().uuidString)",  // Test token
+            refresh_token: "test-refresh-token-\(UUID().uuidString)"  // Test token
         )
 
         let onboardingState = OnboardingState(from: response)

@@ -56,46 +56,31 @@ class OnboardingViewModel: ObservableObject {
     func performOnboarding() async -> OnboardingResult {
         // Check if onboarding is already completed
         if stateManager.isOnboardingCompleted {
-            print("ℹ️ Onboarding already completed, checking user_id and device consistency...")
+            print("ℹ️ Onboarding already completed, checking user_id consistency...")
             
-            // CRITICAL FIX: Check if identifierForVendor has changed
-            let currentIdentifierForVendor = UIDevice.current.identifierForVendor?.uuidString
-            let storedDeviceId = stateManager.deviceId
+            // With StableID, device identifier is persistent across app reinstalls
+            // No need to check for identifier changes anymore
+            // Just verify user_id is available
             
-            // Check if identifierForVendor changed (simulator reset, app reinstall, etc.)
-            if let currentId = currentIdentifierForVendor,
-               let storedId = storedDeviceId,
-               currentId != storedId {
-                print("⚠️ identifierForVendor changed!")
-                print("   - Stored deviceId: \(storedId)")
-                print("   - Current identifierForVendor: \(currentId)")
-                print("   - This means the device changed or simulator was reset")
-                print("   🔄 Clearing onboarding state to trigger re-onboarding...")
-                
-                // Clear onboarding state to force re-onboarding
-                stateManager.resetOnboardingState()
-                // Continue to full onboarding flow below
+            if let userId = UserDefaultsManager.shared.currentUserId, !userId.isEmpty {
+                print("✅ user_id found: \(userId)")
+                print("✅ StableID: \(StableIDService.shared.getStableID())")
+                currentStep = .completed
+                isComplete = true
+                return .alreadyCompleted
             } else {
-                // identifierForVendor matches, but check if user_id is missing
-                if UserDefaultsManager.shared.currentUserId == nil {
-                    if let deviceId = stateManager.deviceId {
-                        UserDefaultsManager.shared.currentUserId = deviceId
-                        print("✅ Restored user_id from deviceId: \(deviceId)")
-                        currentStep = .completed
-                        isComplete = true
-                        return .alreadyCompleted
-                    } else {
-                        print("⚠️ Both user_id and deviceId missing, but onboarding marked complete")
-                        print("   This shouldn't happen - clearing state to trigger re-onboarding...")
-                        stateManager.resetOnboardingState()
-                        // Continue to full onboarding flow below
-                    }
-                } else {
-                    print("✅ user_id found: \(UserDefaultsManager.shared.currentUserId ?? "nil")")
-                    print("✅ identifierForVendor matches stored deviceId")
+                // user_id missing but onboarding marked complete - restore from deviceId if available
+                if let deviceId = stateManager.deviceId, !deviceId.isEmpty {
+                    UserDefaultsManager.shared.currentUserId = deviceId
+                    print("✅ Restored user_id from deviceId: \(deviceId)")
                     currentStep = .completed
                     isComplete = true
                     return .alreadyCompleted
+                } else {
+                    print("⚠️ Both user_id and deviceId missing, but onboarding marked complete")
+                    print("   This shouldn't happen - clearing state to trigger re-onboarding...")
+                    stateManager.resetOnboardingState()
+                    // Continue to full onboarding flow below
                 }
             }
         }
@@ -172,8 +157,8 @@ class OnboardingViewModel: ObservableObject {
 
         currentStep = .usingFallback
 
-        // Generate fallback device ID
-        let fallbackDeviceId = UUID().uuidString
+        // Use StableID for fallback (persistent across app reinstalls)
+        let fallbackDeviceId = StableIDService.shared.getStableID()
         stateManager.completeOnboardingWithFallback(deviceId: fallbackDeviceId)
 
         currentStep = .completed

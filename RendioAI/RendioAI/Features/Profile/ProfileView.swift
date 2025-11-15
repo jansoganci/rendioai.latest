@@ -17,7 +17,8 @@ struct ProfileView: View {
             Color("SurfaceBase")
                 .ignoresSafeArea()
 
-            if viewModel.isLoading {
+            // Only show full-page loading on FIRST load (when no user data exists)
+            if viewModel.isLoading && viewModel.user == nil {
                 loadingView
             } else {
                 ScrollView {
@@ -44,7 +45,8 @@ struct ProfileView: View {
                                 onViewHistory: {
                                     viewModel.navigateToHistory()
                                 },
-                                canBuyCredits: viewModel.canBuyCredits
+                                canBuyCredits: viewModel.canBuyCredits,
+                                isLoadingCredits: viewModel.isLoadingCredits
                             )
 
                             // Account Section
