@@ -11,7 +11,8 @@ import SwiftUI
 struct RendioAIApp: App {
     @StateObject private var themeObserver = ThemeObserver()
     @StateObject private var localizationManager = LocalizationManager.shared
-    
+    @StateObject private var onboardingViewModel = OnboardingViewModel()
+
     init() {
         // Configure StableID first (for persistent device identification)
         // This must happen before any device identification is needed
@@ -24,16 +25,16 @@ struct RendioAIApp: App {
             // Fallback to auto-generated ID for older iOS versions
             StableIDService.shared.configure()
         }
-        
+
         // Set language preference at app launch (before any views render)
         // This must happen before any NSLocalizedString is called
         let defaults = UserDefaultsManager.shared
-        
+
         // If language is not set, default to "en" and save it
         if UserDefaults.standard.string(forKey: "app.settings.language") == nil {
             defaults.language = "en"
         }
-        
+
         let savedLanguage = defaults.language
         UserDefaults.standard.set([savedLanguage, "en"], forKey: "AppleLanguages")
         UserDefaults.standard.synchronize()
@@ -50,10 +51,14 @@ struct RendioAIApp: App {
 
     var body: some Scene {
         WindowGroup {
-            SplashView()
+            ContentView()
                 .preferredColorScheme(themeObserver.colorScheme)
                 .environmentObject(themeObserver)
                 .environmentObject(localizationManager)
+                .task {
+                    // Perform onboarding in background on first launch
+                    await performOnboardingIfNeeded()
+                }
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
                     // Refresh token when app returns from background
                     // This ensures token is fresh after long background periods
@@ -61,6 +66,29 @@ struct RendioAIApp: App {
                         await AuthService.shared.refreshTokenIfNeeded()
                     }
                 }
+        }
+    }
+
+    // MARK: - Background Onboarding
+
+    private func performOnboardingIfNeeded() async {
+        let result = await onboardingViewModel.performOnboarding()
+
+        // Log result
+        switch result {
+        case .success(let response):
+            print("✅ Onboarding success:")
+            print("   - Device ID: \(response.deviceId)")
+            print("   - Is Existing User: \(response.isExistingUser)")
+            print("   - Credits: \(response.creditsRemaining)")
+
+        case .fallback(let reason, let deviceId):
+            print("⚠️ Onboarding fallback:")
+            print("   - Reason: \(reason)")
+            print("   - Device ID: \(deviceId)")
+
+        case .alreadyCompleted:
+            print("ℹ️ Onboarding already completed")
         }
     }
 }

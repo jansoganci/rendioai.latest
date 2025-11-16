@@ -29,11 +29,13 @@ struct SettingsSection: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             // Section Header
             Text("profile.settings".localized)
-                .font(.headline)
-                .foregroundColor(Color("TextPrimary"))
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundColor(Color("TextSecondary"))
+                .textCase(.uppercase)
                 .padding(.horizontal, 16)
 
             // Settings Options
@@ -48,6 +50,7 @@ struct SettingsSection: View {
                 }
 
                 Divider()
+                    .padding(.leading, 48)
                     .background(Color("SurfaceBase"))
 
                 // Theme Dropdown
@@ -59,8 +62,9 @@ struct SettingsSection: View {
                     onThemeChange?(newValue)
                 }
             }
+            .background(Color("SurfaceCard"))
             .cornerRadius(12)
-            .shadow(color: .black.opacity(0.1), radius: 4, y: 2)
+            .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
             .padding(.horizontal, 16)
 
             // Legal Links
@@ -74,12 +78,13 @@ struct SettingsSection: View {
     // MARK: - Subviews
 
     private var legalLinksSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             // Section Header
             Text("Legal")
-                .font(.caption)
+                .font(.subheadline)
                 .fontWeight(.semibold)
                 .foregroundColor(Color("TextSecondary"))
+                .textCase(.uppercase)
                 .padding(.horizontal, 16)
 
             // Links Container
@@ -107,11 +112,11 @@ struct SettingsSection: View {
                     }
                     .padding(.vertical, 12)
                     .padding(.horizontal, 16)
-                    .background(Color("SurfaceCard"))
                 }
 
                 Divider()
                     .padding(.leading, 48)
+                    .background(Color("SurfaceBase"))
 
                 // Terms of Service
                 Button(action: {
@@ -136,11 +141,11 @@ struct SettingsSection: View {
                     }
                     .padding(.vertical, 12)
                     .padding(.horizontal, 16)
-                    .background(Color("SurfaceCard"))
                 }
 
                 Divider()
                     .padding(.leading, 48)
+                    .background(Color("SurfaceBase"))
 
                 // Support
                 Button(action: {
@@ -165,15 +170,14 @@ struct SettingsSection: View {
                     }
                     .padding(.vertical, 12)
                     .padding(.horizontal, 16)
-                    .background(Color("SurfaceCard"))
                 }
             }
             .background(Color("SurfaceCard"))
             .cornerRadius(12)
-            .shadow(color: .black.opacity(0.1), radius: 4, y: 2)
+            .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
             .padding(.horizontal, 16)
         }
-        .padding(.top, 20)
+        .padding(.top, 12)
     }
 
     private var appVersionView: some View {

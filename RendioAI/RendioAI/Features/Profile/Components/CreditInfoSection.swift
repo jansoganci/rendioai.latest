@@ -15,67 +15,70 @@ struct CreditInfoSection: View {
     var isLoadingCredits: Bool = false
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 12) {
             // Credit Display
             creditDisplayView
 
-            // Action Buttons (Subtle gradient style)
-            HStack(spacing: 12) {
+            // Action Buttons (Centered)
+            HStack(spacing: 10) {
                 // Buy Credits Button
                 buyCreditsButton
 
                 // View History Button
                 viewHistoryButton
             }
+            .frame(maxWidth: .infinity)
         }
         .padding(16)
         .background(Color("SurfaceCard"))
         .cornerRadius(12)
-        .shadow(color: .black.opacity(0.1), radius: 4, y: 2)
+        .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
+        .padding(.horizontal, 16)
     }
 
     // MARK: - Subviews
 
     private var creditDisplayView: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 10) {
             Image(systemName: "creditcard.fill")
-                .font(.title3)
+                .font(.body)
                 .foregroundColor(Color("BrandPrimary"))
+                .frame(width: 20)
 
             if isLoadingCredits {
-                // Show subtle loading indicator while credits are being fetched
                 ProgressView()
                     .scaleEffect(0.8)
                     .tint(Color("BrandPrimary"))
             } else {
                 Text(creditsDisplay)
-                    .font(.title3)
+                    .font(.headline)
                     .fontWeight(.semibold)
                     .foregroundColor(Color("TextPrimary"))
             }
+            
+            Spacer()
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
+        .padding(.vertical, 4)
     }
 
     private var buyCreditsButton: some View {
         Button(action: onBuyCredits) {
-            Label(
-                "profile.buy_credits".localized,
-                systemImage: "bolt.fill"
+            HStack(spacing: 4) {
+                Image(systemName: "bolt.fill")
+                    .font(.caption2)
+                Text("profile.buy_credits".localized)
+                    .font(.caption)
+                    .fontWeight(.medium)
+            }
+            .foregroundColor(canBuyCredits ? .white : Color("TextSecondary"))
+            .frame(width: 120)
+            .padding(.vertical, 8)
+            .background(
+                canBuyCredits 
+                    ? Color("BrandPrimary")
+                    : Color("SurfaceCard").opacity(0.5)
             )
-            .font(.headline)
-            .foregroundColor(canBuyCredits ? Color("BrandPrimary") : Color("TextSecondary"))
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .background(Color.clear)
-            .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(
-                        canBuyCredits ? Color("BrandPrimary") : Color("TextSecondary").opacity(0.3),
-                        lineWidth: 2
-                    )
-            )
+            .cornerRadius(8)
         }
         .disabled(!canBuyCredits)
         .accessibilityLabel("profile.buy_credits".localized)
@@ -84,19 +87,22 @@ struct CreditInfoSection: View {
 
     private var viewHistoryButton: some View {
         Button(action: onViewHistory) {
-            Label(
-                "profile.view_history".localized,
-                systemImage: "clock.fill"
-            )
-            .font(.headline)
-            .foregroundColor(Color("TextSecondary"))
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .background(Color.clear)
+            HStack(spacing: 4) {
+                Image(systemName: "clock.fill")
+                    .font(.caption2)
+                Text("profile.view_history".localized)
+                    .font(.caption)
+                    .fontWeight(.medium)
+            }
+            .foregroundColor(Color("TextPrimary"))
+            .frame(width: 120)
+            .padding(.vertical, 8)
+            .background(Color("SurfaceBase"))
             .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(Color("TextSecondary").opacity(0.3), lineWidth: 2)
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color("TextSecondary").opacity(0.2), lineWidth: 1)
             )
+            .cornerRadius(8)
         }
         .accessibilityLabel("profile.view_history".localized)
         .accessibilityHint("View your video generation history")

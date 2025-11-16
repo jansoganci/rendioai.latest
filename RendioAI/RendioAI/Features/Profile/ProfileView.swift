@@ -22,7 +22,7 @@ struct ProfileView: View {
                 SkeletonProfileView()
             } else {
                 ScrollView {
-                    VStack(spacing: 20) {
+                    VStack(spacing: 12) {
                         // Profile Header
                         if let user = viewModel.user {
                             ProfileHeader(
@@ -70,7 +70,7 @@ struct ProfileView: View {
                             )
                         }
                     }
-                    .padding(.vertical, 20)
+                    .padding(.vertical, 16)
                 }
                 .refreshable {
                     await viewModel.loadUserProfile()

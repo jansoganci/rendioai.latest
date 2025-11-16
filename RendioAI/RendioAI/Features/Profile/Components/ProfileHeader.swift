@@ -12,24 +12,48 @@ struct ProfileHeader: View {
     let email: String
 
     var body: some View {
-        VStack(spacing: 8) {
-            // Name
-            Text(userName)
-                .font(.title2)
-                .fontWeight(.semibold)
-                .foregroundColor(Color("TextPrimary"))
-
-            // Email
-            Text(email)
-                .font(.body)
-                .foregroundColor(Color("TextSecondary"))
+        HStack(spacing: 12) {
+            // Avatar
+            avatarView
+            
+            // User Info
+            VStack(alignment: .leading, spacing: 4) {
+                Text(userName)
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(Color("TextPrimary"))
+                
+                Text(email)
+                    .font(.subheadline)
+                    .foregroundColor(Color("TextSecondary"))
+            }
+            
+            Spacer()
         }
-        .padding(.vertical, 24)
+        .padding(16)
         .frame(maxWidth: .infinity)
         .background(Color("SurfaceCard"))
         .cornerRadius(12)
-        .shadow(color: .black.opacity(0.1), radius: 4, y: 2)
+        .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
         .padding(.horizontal, 16)
+    }
+    
+    private var avatarView: some View {
+        ZStack {
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: [Color("BrandPrimary").opacity(0.8), Color("BrandPrimary")],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: 56, height: 56)
+            
+            Image(systemName: "person.fill")
+                .font(.title3)
+                .foregroundColor(.white)
+        }
     }
 }
 

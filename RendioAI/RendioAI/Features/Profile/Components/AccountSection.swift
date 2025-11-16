@@ -15,11 +15,13 @@ struct AccountSection: View {
     let onDeleteAccount: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             // Section Header
             Text("profile.account_title".localized)
-                .font(.headline)
-                .foregroundColor(Color("TextPrimary"))
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundColor(Color("TextSecondary"))
+                .textCase(.uppercase)
                 .padding(.horizontal, 16)
 
             // Account Actions
@@ -32,18 +34,21 @@ struct AccountSection: View {
                     restorePurchasesButton
 
                     Divider()
+                        .padding(.leading, 48)
                         .background(Color("SurfaceBase"))
 
                     signOutButton
 
                     Divider()
+                        .padding(.leading, 48)
                         .background(Color("SurfaceBase"))
 
                     deleteAccountButton
                 }
             }
+            .background(Color("SurfaceCard"))
             .cornerRadius(12)
-            .shadow(color: .black.opacity(0.1), radius: 4, y: 2)
+            .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
             .padding(.horizontal, 16)
         }
     }
@@ -55,7 +60,8 @@ struct AccountSection: View {
             AccountActionRow(
                 icon: "applelogo",
                 text: "profile.sign_in".localized,
-                textColor: Color("TextPrimary")
+                textColor: .white,
+                backgroundColor: Color("BrandPrimary")
             )
         }
         .accessibilityLabel("profile.sign_in".localized)
@@ -105,24 +111,29 @@ private struct AccountActionRow: View {
     let icon: String
     let text: String
     let textColor: Color
+    var backgroundColor: Color? = nil
 
     var body: some View {
-        HStack {
+        HStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.body)
+                .frame(width: 20)
 
             Text(text)
                 .font(.body)
 
             Spacer()
 
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundColor(Color("TextSecondary"))
+            if backgroundColor == nil {
+                Image(systemName: "chevron.right")
+                    .font(.caption2)
+                    .foregroundColor(Color("TextSecondary"))
+            }
         }
         .foregroundColor(textColor)
-        .padding(16)
-        .background(Color("SurfaceCard"))
+        .padding(.vertical, 12)
+        .padding(.horizontal, 16)
+        .background(backgroundColor ?? Color.clear)
     }
 }
 
