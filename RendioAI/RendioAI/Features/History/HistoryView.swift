@@ -16,12 +16,40 @@ struct HistoryView: View {
             // Background
             Color("SurfaceBase")
                 .ignoresSafeArea()
-            
+
             if viewModel.isLoading && viewModel.historySections.isEmpty {
-                // Initial loading state
-                ProgressView()
-                    .tint(Color("BrandPrimary"))
-                    .accessibilityLabel(NSLocalizedString("history.accessibility.loading", comment: "Loading history"))
+                // Initial loading state with skeleton UI (not spinner!)
+                ScrollView {
+                    LazyVStack(spacing: 24) {
+                        // Search Bar (visible even during loading)
+                        SearchBar(searchQuery: .constant(""))
+                            .disabled(true)
+                            .padding(.horizontal, 16)
+                            .padding(.top, 16)
+
+                        // Skeleton Cards - show page structure immediately
+                        VStack(alignment: .leading, spacing: 16) {
+                            // Section header skeleton
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color("TextSecondary").opacity(0.1))
+                                .frame(width: 120, height: 20)
+                                .padding(.horizontal, 16)
+                                .shimmer()
+
+                            // Skeleton cards (3-4 cards to show expected content)
+                            ForEach(0..<3, id: \.self) { _ in
+                                SkeletonCard()
+                                    .padding(.horizontal, 16)
+                            }
+                        }
+                        .padding(.top, 8)
+
+                        // Bottom padding
+                        Spacer()
+                            .frame(height: 32)
+                    }
+                }
+                .accessibilityLabel(NSLocalizedString("history.accessibility.loading", comment: "Loading history"))
             } else if viewModel.isEmpty {
                 // Empty state
                 HistoryEmptyState(onGenerateVideo: {
@@ -35,7 +63,7 @@ struct HistoryView: View {
                         SearchBar(searchQuery: $viewModel.searchQuery)
                             .padding(.horizontal, 16)
                             .padding(.top, 16)
-                        
+
                         // History Sections
                         ForEach(viewModel.filteredSections) { section in
                             HistorySection(
@@ -63,7 +91,7 @@ struct HistoryView: View {
                                 }
                             )
                         }
-                        
+
                         // Bottom padding
                         Spacer()
                             .frame(height: 32)

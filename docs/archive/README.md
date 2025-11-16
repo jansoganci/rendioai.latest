@@ -1,48 +1,34 @@
-# 📦 Archive Documentation
+# 🔄 Active Documentation
 
-This directory contains **historical and completed** documentation preserved for reference.
+This directory contains **current, actively maintained** documentation that is regularly referenced during development.
 
-## 📋 Organization
+## 📋 Contents
 
-### `audits/` - Audit Reports
-Completed audit reports documenting implementation status at specific points in time.
+### Project Documentation
+- **ProjectOverview.md** - High-level project overview and goals
+- **Roadmap.md** - Current project roadmap and milestones
 
-**Use for:**
-- Understanding what was implemented and when
-- Reference for completed work
-- Historical project status
+### Design System
+- **design/** - Complete design system documentation
+  - `design-rulebook.md` - Visual design guidelines, colors, typography
+  - `general-rulebook.md` - Architecture patterns, coding standards
+  - `blueprints/` - Screen and feature blueprints
+  - `analysis/` - Active feature analysis documents
+  - `backend/` - Backend architecture and API documentation
+  - `database/` - Database schema and data models
+  - `operations/` - Operations guides (error handling, monitoring)
+  - `security/` - Security policies and guidelines
 
-### `analysis/` - Analysis Documents
-Analysis documents for features that have been completed.
+## 🎯 When to Update
 
-**Use for:**
-- Understanding design decisions
-- Reference for completed analysis
-- Historical context
-
-### `summaries/` - Implementation Summaries
-Summaries of completed implementation work and setup processes.
-
-**Use for:**
-- Understanding how features were implemented
-- Reference for setup processes
-- Historical implementation records
-
-### `completed-features/` - Completed Feature Docs
-Documentation for features that are fully implemented and no longer in active development.
-
-**Use for:**
-- Reference for completed features
-- Testing guides for completed features
-- Historical feature documentation
-
-## 📝 Notes
-
-- These documents are **preserved for historical reference**
-- They are **not actively maintained** but may be referenced
-- Nothing is deleted - all work is preserved here
+These documents should be updated when:
+- Design system changes
+- Architecture patterns evolve
+- New features are planned
+- Blueprints are modified
+- Standards are updated
 
 ---
 
-**Status:** Historical Reference
+**Status:** Actively Maintained
 

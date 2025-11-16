@@ -17,9 +17,9 @@ struct ProfileView: View {
             Color("SurfaceBase")
                 .ignoresSafeArea()
 
-            // Only show full-page loading on FIRST load (when no user data exists)
+            // Only show skeleton UI on FIRST load (when no user data exists)
             if viewModel.isLoading && viewModel.user == nil {
-                loadingView
+                SkeletonProfileView()
             } else {
                 ScrollView {
                     VStack(spacing: 20) {
@@ -102,18 +102,6 @@ struct ProfileView: View {
     }
 
     // MARK: - Subviews
-
-    private var loadingView: some View {
-        VStack(spacing: 16) {
-            ProgressView()
-                .scaleEffect(1.5)
-                .tint(Color("BrandPrimary"))
-
-            Text("common.loading".localized)
-                .font(.body)
-                .foregroundColor(Color("TextSecondary"))
-        }
-    }
 
     @ViewBuilder
     private var alertButtons: some View {

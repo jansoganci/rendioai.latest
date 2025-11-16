@@ -9,7 +9,7 @@ import SwiftUI
 
 struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
-    @State private var selectedThemeId: String?
+    @State private var selectedTheme: Theme?
     @State private var showWelcomeBanner: Bool = false
     @State private var showingPurchaseSheet: Bool = false
 
@@ -94,11 +94,11 @@ struct HomeView: View {
             }
         }
         .navigationDestination(isPresented: Binding(
-            get: { selectedThemeId != nil },
-            set: { if !$0 { selectedThemeId = nil } }
+            get: { selectedTheme != nil },
+            set: { if !$0 { selectedTheme = nil } }
         )) {
-            if let themeId = selectedThemeId {
-                ModelDetailView(themeId: themeId)
+            if let theme = selectedTheme {
+                ModelDetailView(theme: theme)
             }
         }
         .sheet(isPresented: $showingPurchaseSheet) {
@@ -193,7 +193,7 @@ struct HomeView: View {
         FeaturedThemeCard(
             theme: theme,
             action: {
-                selectedThemeId = theme.id
+                selectedTheme = theme
             }
         )
         .padding(.horizontal, 16)
@@ -231,7 +231,7 @@ struct HomeView: View {
         ThemeGridCard(
             theme: theme,
             action: {
-                selectedThemeId = theme.id
+                selectedTheme = theme
             }
         )
     }

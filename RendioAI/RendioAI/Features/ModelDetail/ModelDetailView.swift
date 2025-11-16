@@ -8,17 +8,37 @@
 import SwiftUI
 
 struct ModelDetailView: View {
-    let themeId: String
+    let theme: Theme
     let initialPrompt: String?
-    
+
     @StateObject private var viewModel: ModelDetailViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var generatedJobId: String?
-    
-    init(themeId: String, initialPrompt: String? = nil) {
-        self.themeId = themeId
+
+    // Primary initializer - uses Theme object
+    init(theme: Theme, initialPrompt: String? = nil) {
+        self.theme = theme
         self.initialPrompt = initialPrompt
-        self._viewModel = StateObject(wrappedValue: ModelDetailViewModel(themeId: themeId, initialPrompt: initialPrompt))
+        self._viewModel = StateObject(wrappedValue: ModelDetailViewModel(theme: theme, initialPrompt: initialPrompt))
+    }
+
+    // Legacy initializer - for backward compatibility (deep links, regeneration)
+    init(themeId: String, initialPrompt: String? = nil) {
+        let placeholderTheme = Theme(
+            id: themeId,
+            name: "Loading...",
+            description: nil,
+            thumbnailURL: nil,
+            prompt: "",
+            isFeatured: false,
+            isAvailable: true,
+            defaultSettings: nil,
+            createdAt: Date()
+        )
+
+        self.theme = placeholderTheme
+        self.initialPrompt = initialPrompt
+        self._viewModel = StateObject(wrappedValue: ModelDetailViewModel(theme: nil, themeId: themeId, initialPrompt: initialPrompt))
     }
     
     var body: some View {
@@ -26,61 +46,76 @@ struct ModelDetailView: View {
             // Background
             Color("SurfaceBase")
                 .ignoresSafeArea()
-            
-            if viewModel.isLoading {
-                // Initial loading state
+
+            // Only show full-page loading on FIRST load (when no theme exists - legacy path only)
+            if viewModel.isLoading && viewModel.theme == nil {
                 ProgressView()
                     .tint(Color("BrandPrimary"))
-            } else if let theme = viewModel.theme, let activeModel = viewModel.activeModel {
+            } else if let theme = viewModel.theme {
+                // Show UI immediately if we have theme (always true with new approach)
                 ScrollView {
                     VStack(spacing: 0) {
-                        // Header
-                        headerView(theme: theme, activeModel: activeModel)
+                        // Header - Always visible
+                        headerView(theme: theme, activeModel: viewModel.activeModel)
                             .padding(.horizontal, 16)
                             .padding(.top, 8)
-                        
-                        // Theme Description
+
+                        // Theme Description - Always visible
                         descriptionSection(theme: theme)
                             .padding(.horizontal, 16)
                             .padding(.top, 24)
-                        
-                        // Prompt Input (pre-filled from theme)
+
+                        // Prompt Input - Always visible
                         PromptInputField(
                             text: $viewModel.prompt,
                             placeholder: NSLocalizedString("model_detail.prompt_placeholder", comment: "Prompt placeholder"),
-                            isEnabled: true
+                            isEnabled: !viewModel.isLoadingModel
                         )
                         .padding(.horizontal, 16)
                         .padding(.top, 24)
-                        
-                        // Image Picker (only if model requires image)
-                        if activeModel.requiredFields?.needsImage == true {
-                            ImagePickerView(
-                                selectedImage: $viewModel.selectedImage,
-                                isRequired: true,
-                                isEnabled: !viewModel.isGenerating && !viewModel.isUploadingImage
+
+                        // Model-dependent sections - Progressive loading
+                        if viewModel.isLoadingModel {
+                            // Inline loading state (not full-page)
+                            VStack(spacing: 16) {
+                                ProgressView()
+                                    .tint(Color("BrandPrimary"))
+                                Text(NSLocalizedString("model_detail.loading_settings", comment: "Loading settings"))
+                                    .font(.caption)
+                                    .foregroundColor(Color("TextSecondary"))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 40)
+                        } else if let activeModel = viewModel.activeModel {
+                            // Image Picker (only if model requires image)
+                            if activeModel.requiredFields?.needsImage == true {
+                                ImagePickerView(
+                                    selectedImage: $viewModel.selectedImage,
+                                    isRequired: true,
+                                    isEnabled: !viewModel.isGenerating && !viewModel.isUploadingImage
+                                )
+                                .padding(.horizontal, 16)
+                                .padding(.top, 16)
+                            }
+
+                            // Dynamic Settings Panel
+                            DynamicSettingsPanel(
+                                settings: $viewModel.settings,
+                                modelRequirements: activeModel.requiredFields
+                            )
+                            .padding(.horizontal, 16)
+                            .padding(.top, 16)
+
+                            // Credit Info Bar
+                            CreditInfoBar(
+                                cost: viewModel.generationCost,
+                                creditsRemaining: viewModel.creditsRemaining
                             )
                             .padding(.horizontal, 16)
                             .padding(.top, 16)
                         }
-                        
-                        // Dynamic Settings Panel (based on active model's requirements)
-                        DynamicSettingsPanel(
-                            settings: $viewModel.settings,
-                            modelRequirements: activeModel.requiredFields
-                        )
-                        .padding(.horizontal, 16)
-                        .padding(.top, 16)
-                        
-                        // Credit Info Bar
-                        CreditInfoBar(
-                            cost: viewModel.generationCost,
-                            creditsRemaining: viewModel.creditsRemaining
-                        )
-                        .padding(.horizontal, 16)
-                        .padding(.top, 16)
-                        
-                        // Tip Text
+
+                        // Tip Text - Always visible
                         tipSection
                             .padding(.horizontal, 16)
                             .padding(.top, 12)
@@ -121,14 +156,14 @@ struct ModelDetailView: View {
             set: { if !$0 { generatedJobId = nil } }
         )) {
             if let jobId = generatedJobId {
-                ResultView(jobId: jobId, themeId: themeId)
+                ResultView(jobId: jobId, themeId: theme.id)
             }
         }
     }
     
     // MARK: - Header View
     
-    private func headerView(theme: Theme, activeModel: ModelDetail) -> some View {
+    private func headerView(theme: Theme, activeModel: ModelDetail?) -> some View {
         HStack {
             // Back Button
             Button(action: {

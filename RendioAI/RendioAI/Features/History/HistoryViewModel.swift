@@ -71,13 +71,15 @@ class HistoryViewModel: ObservableObject {
     }
     
     // MARK: - Public Methods
-    
-    /// Load history from API
+
+    /// Load history from API with progressive loading
     func loadHistory() {
         Task {
-            isLoading = true
+            // Only show full-page loading if no data exists (first load)
+            let isFirstLoad = historySections.isEmpty
+            isLoading = isFirstLoad
             errorMessage = nil
-            
+
             do {
                 let userId = resolvedUserId
                 let deviceId = resolvedDeviceId
@@ -92,7 +94,7 @@ class HistoryViewModel: ObservableObject {
             } catch {
                 handleError(error)
             }
-            
+
             isLoading = false
         }
     }

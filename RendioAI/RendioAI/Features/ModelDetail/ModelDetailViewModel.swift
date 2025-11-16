@@ -20,15 +20,17 @@ class ModelDetailViewModel: ObservableObject {
     @Published var selectedImage: UIImage?
     @Published var isUploadingImage: Bool = false
     @Published var isLoading: Bool = false
+    @Published var isLoadingModel: Bool = false
     @Published var isGenerating: Bool = false
     @Published var creditsRemaining: Int = 0
     @Published var errorMessage: String?
     @Published var showingErrorAlert: Bool = false
     @Published var generatedJobId: String?
-    
+
     // MARK: - Private Properties
-    
+
     private let themeId: String
+    private let initialTheme: Theme?
     private let initialPrompt: String?
     private let themeService: ThemeServiceProtocol
     private let modelService: ModelServiceProtocol
@@ -74,7 +76,8 @@ class ModelDetailViewModel: ObservableObject {
     // MARK: - Initialization
     
     init(
-        themeId: String,
+        theme: Theme? = nil,
+        themeId: String? = nil,
         initialPrompt: String? = nil,
         themeService: ThemeServiceProtocol = ThemeService.shared,
         modelService: ModelServiceProtocol = ModelService.shared,
@@ -82,55 +85,85 @@ class ModelDetailViewModel: ObservableObject {
         videoGenerationService: VideoGenerationServiceProtocol = VideoGenerationService.shared,
         imageUploadService: ImageUploadServiceProtocol = ImageUploadService.shared
     ) {
-        self.themeId = themeId
+        self.initialTheme = theme
+        self.themeId = theme?.id ?? themeId ?? ""
         self.initialPrompt = initialPrompt
         self.themeService = themeService
         self.modelService = modelService
         self.creditService = creditService
         self.videoGenerationService = videoGenerationService
         self.imageUploadService = imageUploadService
+
+        // If theme provided, set it immediately (no loading needed)
+        if let providedTheme = theme {
+            self.theme = providedTheme
+            self.prompt = initialPrompt ?? providedTheme.prompt
+
+            // Apply default settings immediately
+            if let defaultSettings = providedTheme.defaultSettings {
+                let duration = defaultSettings["duration"] as? Int ?? VideoSettings.default.duration
+                let resolution = defaultSettings["resolution"] as? String ?? VideoSettings.default.resolution
+                let aspectRatio = defaultSettings["aspect_ratio"] as? String ?? VideoSettings.default.aspect_ratio
+
+                self.settings = VideoSettings(
+                    duration: duration,
+                    resolution: resolution,
+                    aspect_ratio: aspectRatio,
+                    fps: VideoSettings.default.fps
+                )
+            }
+        }
     }
     
     // MARK: - Public Methods
     
     func loadModelDetail() {
         Task {
-            isLoading = true
-            do {
-                // Fetch theme and active model in parallel (critical - must succeed)
-                async let fetchedTheme = themeService.fetchThemeDetail(id: themeId)
-                async let fetchedActiveModel = modelService.fetchActiveModel()
-                
-                let (themeDetail, modelDetail) = try await (fetchedTheme, fetchedActiveModel)
-                
-                // Set theme and active model immediately
-                theme = themeDetail
-                activeModel = modelDetail
-                
-                // Pre-fill prompt: use initialPrompt if provided (for regeneration), otherwise use theme prompt
-                prompt = initialPrompt ?? themeDetail.prompt
-                
-                // Apply theme's default settings if available
-                if let defaultSettings = themeDetail.defaultSettings {
-                    applyThemeDefaultSettings(defaultSettings)
+            // Phase 1: Theme (Instant if pre-populated, otherwise fetch)
+            if initialTheme == nil {
+                // Legacy path: No theme provided, must fetch
+                isLoading = true
+                do {
+                    let fetchedTheme = try await themeService.fetchThemeDetail(id: themeId)
+                    theme = fetchedTheme
+                    prompt = initialPrompt ?? fetchedTheme.prompt
+
+                    if let defaultSettings = fetchedTheme.defaultSettings {
+                        applyThemeDefaultSettings(defaultSettings)
+                    }
+                } catch {
+                    handleError(error)
+                    isLoading = false
+                    return
                 }
-                
-                // Fetch credits separately (non-critical - can fail gracefully)
+                isLoading = false
+            }
+            // If initialTheme exists, theme is already set in init()
+
+            // Phase 2: Active Model (Required for generation - load immediately)
+            isLoadingModel = true
+            do {
+                let modelDetail = try await modelService.fetchActiveModel()
+                activeModel = modelDetail
+            } catch {
+                // Critical - can't generate without model
+                handleError(error)
+                isLoadingModel = false
+                return
+            }
+            isLoadingModel = false
+
+            // Phase 3: Credits (Non-critical - load in background)
+            Task {
                 do {
                     let fetchedCredits = try await creditService.fetchCredits()
                     creditsRemaining = fetchedCredits
                 } catch {
-                    // If credits fail (e.g., no user_id), just log and continue
-                    // User can still view the page, credits will show as 0
+                    // Non-critical - just log and show 0
                     print("⚠️ ModelDetailViewModel: Failed to fetch credits: \(error)")
                     creditsRemaining = 0
                 }
-                
-            } catch {
-                // Only handle error if theme or active model failed (critical failure)
-                handleError(error)
             }
-            isLoading = false
         }
     }
     
