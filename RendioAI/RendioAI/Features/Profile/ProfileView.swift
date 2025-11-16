@@ -27,9 +27,7 @@ struct ProfileView: View {
                         if let user = viewModel.user {
                             ProfileHeader(
                                 userName: user.displayName,
-                                email: user.email ?? "profile.email_hidden".localized,
-                                tier: viewModel.tierDisplay,
-                                isGuest: user.isGuest
+                                email: user.email ?? "profile.email_hidden".localized
                             )
 
                             // Credit Info Section

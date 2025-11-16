@@ -63,12 +63,118 @@ struct SettingsSection: View {
             .shadow(color: .black.opacity(0.1), radius: 4, y: 2)
             .padding(.horizontal, 16)
 
+            // Legal Links
+            legalLinksSection
+
             // App Version
             appVersionView
         }
     }
 
     // MARK: - Subviews
+
+    private var legalLinksSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Section Header
+            Text("Legal")
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundColor(Color("TextSecondary"))
+                .padding(.horizontal, 16)
+
+            // Links Container
+            VStack(spacing: 0) {
+                // Privacy Policy
+                Button(action: {
+                    if let url = URL(string: "https://jansoganci.github.io/rendioai.latest/Legal-Documents/privacy.html") {
+                        UIApplication.shared.open(url)
+                    }
+                }) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "hand.raised.fill")
+                            .font(.body)
+                            .foregroundColor(Color("TextSecondary"))
+
+                        Text("Privacy Policy")
+                            .font(.body)
+                            .foregroundColor(Color("TextPrimary"))
+
+                        Spacer()
+
+                        Image(systemName: "arrow.up.right")
+                            .font(.caption)
+                            .foregroundColor(Color("TextSecondary"))
+                    }
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 16)
+                    .background(Color("SurfaceCard"))
+                }
+
+                Divider()
+                    .padding(.leading, 48)
+
+                // Terms of Service
+                Button(action: {
+                    if let url = URL(string: "https://jansoganci.github.io/rendioai.latest/Legal-Documents/terms.html") {
+                        UIApplication.shared.open(url)
+                    }
+                }) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "doc.text.fill")
+                            .font(.body)
+                            .foregroundColor(Color("TextSecondary"))
+
+                        Text("Terms of Service")
+                            .font(.body)
+                            .foregroundColor(Color("TextPrimary"))
+
+                        Spacer()
+
+                        Image(systemName: "arrow.up.right")
+                            .font(.caption)
+                            .foregroundColor(Color("TextSecondary"))
+                    }
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 16)
+                    .background(Color("SurfaceCard"))
+                }
+
+                Divider()
+                    .padding(.leading, 48)
+
+                // Support
+                Button(action: {
+                    if let url = URL(string: "https://jansoganci.github.io/rendioai.latest/Legal-Documents/support.html") {
+                        UIApplication.shared.open(url)
+                    }
+                }) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "questionmark.circle.fill")
+                            .font(.body)
+                            .foregroundColor(Color("TextSecondary"))
+
+                        Text("Support & Help")
+                            .font(.body)
+                            .foregroundColor(Color("TextPrimary"))
+
+                        Spacer()
+
+                        Image(systemName: "arrow.up.right")
+                            .font(.caption)
+                            .foregroundColor(Color("TextSecondary"))
+                    }
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 16)
+                    .background(Color("SurfaceCard"))
+                }
+            }
+            .background(Color("SurfaceCard"))
+            .cornerRadius(12)
+            .shadow(color: .black.opacity(0.1), radius: 4, y: 2)
+            .padding(.horizontal, 16)
+        }
+        .padding(.top, 20)
+    }
 
     private var appVersionView: some View {
         HStack {

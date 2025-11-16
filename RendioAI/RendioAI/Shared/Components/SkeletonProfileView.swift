@@ -34,33 +34,23 @@ struct SkeletonProfileView: View {
 
 private struct SkeletonProfileHeader: View {
     var body: some View {
-        VStack(spacing: 12) {
-            // Avatar skeleton
-            Circle()
-                .fill(Color("TextSecondary").opacity(0.1))
-                .frame(width: 80, height: 80)
-                .overlay(
-                    Image(systemName: "person.fill")
-                        .font(.largeTitle)
-                        .foregroundColor(Color("TextSecondary").opacity(0.3))
-                )
-
+        VStack(spacing: 8) {
             // Name skeleton
             RoundedRectangle(cornerRadius: 4)
                 .fill(Color("TextSecondary").opacity(0.1))
-                .frame(width: 150, height: 20)
+                .frame(width: 150, height: 22)
 
             // Email skeleton
             RoundedRectangle(cornerRadius: 4)
                 .fill(Color("TextSecondary").opacity(0.1))
-                .frame(width: 200, height: 14)
-
-            // Tier badge skeleton
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color("TextSecondary").opacity(0.1))
-                .frame(width: 80, height: 28)
+                .frame(width: 200, height: 16)
         }
-        .padding(.vertical, 16)
+        .padding(.vertical, 24)
+        .frame(maxWidth: .infinity)
+        .background(Color("SurfaceCard"))
+        .cornerRadius(12)
+        .shadow(color: .black.opacity(0.1), radius: 4, y: 2)
+        .padding(.horizontal, 16)
         .shimmer()
     }
 }

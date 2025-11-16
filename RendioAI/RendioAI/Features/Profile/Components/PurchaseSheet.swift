@@ -33,6 +33,9 @@ struct PurchaseSheet: View {
 
                     // Purchase Button
                     purchaseButton
+
+                    // Legal Disclaimer
+                    legalDisclaimer
                 }
                 .padding(.vertical, 24)
             }
@@ -132,6 +135,44 @@ struct PurchaseSheet: View {
         .disabled(selectedPackage == nil || storeKit.isPurchasing)
         .padding(.horizontal, 16)
         .accessibilityLabel("Purchase selected credit package")
+    }
+
+    private var legalDisclaimer: some View {
+        VStack(spacing: 8) {
+            Text("By purchasing, you agree to our")
+                .font(.caption)
+                .foregroundColor(Color("TextSecondary"))
+
+            HStack(spacing: 4) {
+                Button(action: {
+                    if let url = URL(string: "https://jansoganci.github.io/rendioai.latest/Legal-Documents/terms.html") {
+                        UIApplication.shared.open(url)
+                    }
+                }) {
+                    Text("Terms of Service")
+                        .font(.caption)
+                        .foregroundColor(Color("BrandPrimary"))
+                        .underline()
+                }
+
+                Text("and")
+                    .font(.caption)
+                    .foregroundColor(Color("TextSecondary"))
+
+                Button(action: {
+                    if let url = URL(string: "https://jansoganci.github.io/rendioai.latest/Legal-Documents/privacy.html") {
+                        UIApplication.shared.open(url)
+                    }
+                }) {
+                    Text("Privacy Policy")
+                        .font(.caption)
+                        .foregroundColor(Color("BrandPrimary"))
+                        .underline()
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
     }
 
     // MARK: - Actions

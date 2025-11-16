@@ -19,7 +19,7 @@ struct CreditInfoSection: View {
             // Credit Display
             creditDisplayView
 
-            // Action Buttons
+            // Action Buttons (Subtle gradient style)
             HStack(spacing: 12) {
                 // Buy Credits Button
                 buyCreditsButton
@@ -65,14 +65,19 @@ struct CreditInfoSection: View {
                 systemImage: "bolt.fill"
             )
             .font(.headline)
-            .foregroundColor(.white)
+            .foregroundColor(canBuyCredits ? Color("BrandPrimary") : Color("TextSecondary"))
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .background(canBuyCredits ? Color("BrandPrimary") : Color("TextSecondary").opacity(0.3))
-            .cornerRadius(8)
+            .padding(.vertical, 14)
+            .background(Color.clear)
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(
+                        canBuyCredits ? Color("BrandPrimary") : Color("TextSecondary").opacity(0.3),
+                        lineWidth: 2
+                    )
+            )
         }
         .disabled(!canBuyCredits)
-        .opacity(canBuyCredits ? 1.0 : 0.6)
         .accessibilityLabel("profile.buy_credits".localized)
         .accessibilityHint(canBuyCredits ? "Purchase additional credits" : "Sign in to purchase credits")
     }
@@ -84,11 +89,14 @@ struct CreditInfoSection: View {
                 systemImage: "clock.fill"
             )
             .font(.headline)
-            .foregroundColor(Color("BrandPrimary"))
+            .foregroundColor(Color("TextSecondary"))
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .background(Color("BrandPrimary").opacity(0.1))
-            .cornerRadius(8)
+            .padding(.vertical, 14)
+            .background(Color.clear)
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(Color("TextSecondary").opacity(0.3), lineWidth: 2)
+            )
         }
         .accessibilityLabel("profile.view_history".localized)
         .accessibilityHint("View your video generation history")
