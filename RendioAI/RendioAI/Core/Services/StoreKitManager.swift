@@ -40,7 +40,7 @@ struct CreditPackage: Identifiable, Hashable {
     }
 
     static func creditsFromProductId(_ productId: String) -> Int {
-        // Extract credits from product ID (e.g., "com.janstrade.rendio.credits.10" -> 10)
+        // Extract credits from product ID (e.g., "com.rendioai.credits.starter.25" -> 25)
         let components = productId.split(separator: ".")
         if let last = components.last, let credits = Int(last) {
             return credits
@@ -89,11 +89,9 @@ class StoreKitManager: ObservableObject, StoreKitManagerProtocol {
 
     private var productIds: [String] {
         [
-            "com.janstrade.rendio.credits.10",
-            "com.janstrade.rendio.credits.25",
-            "com.janstrade.rendio.credits.50",
-            "com.janstrade.rendio.credits.100",
-            "com.janstrade.rendio.credits.250"
+            "com.rendioai.credits.starter.25",
+            "com.rendioai.credits.popular.60",
+            "com.rendioai.credits.best.150"
         ]
     }
 
@@ -119,8 +117,10 @@ class StoreKitManager: ObservableObject, StoreKitManagerProtocol {
             productsCache = products
 
             // Convert to CreditPackage models
-            let packages = products.enumerated().map { index, product in
-                CreditPackage(product: product, isPopular: index == 2) // Mark 50 credits as popular
+            let packages = products.map { product in
+                // Mark 60-credit pack (Popular) as popular
+                let isPopular = product.id.contains("popular")
+                return CreditPackage(product: product, isPopular: isPopular)
             }
 
             // Sort by credits ascending
@@ -205,26 +205,55 @@ class StoreKitManager: ObservableObject, StoreKitManagerProtocol {
     // MARK: - Validate Receipt
 
     func validateReceipt(transaction: Transaction) async throws -> Int {
-        // Phase 2: Replace with actual Supabase Edge Function call
-        // Endpoint: POST /api/validate-receipt
-        // Body: { transaction_id, product_id, receipt_data }
-        // Currently using mock data for development
+        // Call Supabase Edge Function: update-credits
+        let userId = UserDefaultsManager.shared.currentUserId ?? ""
 
-        // Simulate network delay
-        try await Task.sleep(for: .seconds(1.0))
+        guard !userId.isEmpty else {
+            throw AppError.networkError("User ID not found")
+        }
 
-        // Extract credits from product ID
-        let credits = CreditPackage.creditsFromProductId(transaction.productID)
+        let url = URL(string: "\(AppConfig.supabaseURL)/functions/v1/update-credits")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(AppConfig.supabaseAnonKey)", forHTTPHeaderField: "Authorization")
+        request.setValue(AppConfig.supabaseAnonKey, forHTTPHeaderField: "apikey")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        // Phase 2: Backend should:
-        // 1. Verify receipt with Apple
-        // 2. Check if transaction already processed (prevent double-crediting)
-        // 3. Add credits to quota_log
-        // 4. Return total credits added
+        // Get receipt data
+        guard let receiptURL = Bundle.main.appStoreReceiptURL,
+              let receiptData = try? Data(contentsOf: receiptURL) else {
+            throw AppError.networkError("Receipt not found")
+        }
 
-        print("✅ Validated receipt for \(credits) credits (Transaction: \(transaction.id))")
+        let receiptString = receiptData.base64EncodedString()
 
-        return credits
+        let body: [String: Any] = [
+            "user_id": userId,
+            "transaction_id": String(transaction.id),
+            "product_id": transaction.productID,
+            "receipt_data": receiptString,
+            "purchase_date": ISO8601DateFormatter().string(from: transaction.purchaseDate)
+        ]
+
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200...299).contains(httpResponse.statusCode) else {
+            throw AppError.networkError("Failed to validate receipt")
+        }
+
+        struct ValidationResponse: Codable {
+            let credits_added: Int
+            let total_credits: Int
+        }
+
+        let validationResponse = try JSONDecoder().decode(ValidationResponse.self, from: data)
+
+        print("✅ Validated receipt: +\(validationResponse.credits_added) credits, total: \(validationResponse.total_credits)")
+
+        return validationResponse.credits_added
     }
 
     // MARK: - Private Helpers
