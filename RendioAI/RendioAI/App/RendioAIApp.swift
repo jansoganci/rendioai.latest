@@ -37,9 +37,15 @@ struct RendioAIApp: App {
         let savedLanguage = defaults.language
         UserDefaults.standard.set([savedLanguage, "en"], forKey: "AppleLanguages")
         UserDefaults.standard.synchronize()
-        
+
         // Force Bundle to use our language preference
         // This must be done before any view renders
+
+        // Background token refresh on app launch
+        // Refreshes JWT token if it expires within 10 minutes
+        Task {
+            await AuthService.shared.refreshTokenIfNeeded()
+        }
     }
 
     var body: some Scene {
@@ -48,6 +54,13 @@ struct RendioAIApp: App {
                 .preferredColorScheme(themeObserver.colorScheme)
                 .environmentObject(themeObserver)
                 .environmentObject(localizationManager)
+                .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+                    // Refresh token when app returns from background
+                    // This ensures token is fresh after long background periods
+                    Task {
+                        await AuthService.shared.refreshTokenIfNeeded()
+                    }
+                }
         }
     }
 }

@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	RendioAI Privacy Manifest
+
+	This file declares:
+	1. Whether the app tracks users (NO)
+	2. What data the app collects
+	3. Which required iOS APIs the app uses
+
+	Required by Apple for App Store submission (iOS 17+)
+	-->
+
+	<!-- SECTION 1: User Tracking -->
+	<!-- Does this app track users across other companies' apps/websites? -->
+	<key>NSPrivacyTracking</key>
+	<false/>
+
+	<!-- Tracking domains (empty because we don't track) -->
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+
+	<!-- SECTION 2: Data Collection -->
+	<!-- What user data does this app collect? -->
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array>
+		<!-- 1. Device ID (StableID for user identification) -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeDeviceID</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+
+		<!-- 2. User ID (Account identification) -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeUserID</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+
+		<!-- 3. Photos/Videos (User uploads images for video generation) -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypePhotosorVideos</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+
+		<!-- 4. Product Interaction (Video generation history) -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeProductInteraction</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+
+		<!-- 5. Purchase History (In-App Purchase credits) -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypePurchaseHistory</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+	</array>
+
+	<!-- SECTION 3: Required Reason API Usage -->
+	<!-- Which sensitive iOS APIs does this app use and why? -->
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<!-- 1. UserDefaults API -->
+		<!-- Used for: Saving app settings, language preference, theme, user_id -->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<!-- CA92.1: Accessing user defaults from the same app -->
+				<string>CA92.1</string>
+			</array>
+		</dict>
+
+		<!-- 2. File Timestamp API -->
+		<!-- Used by: Image caching library (Kingfisher) and asset management -->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<!-- C617.1: Timestamps used to determine file order or creation/modification dates for app functionality -->
+				<string>C617.1</string>
+			</array>
+		</dict>
+
+		<!-- 3. System Boot Time API -->
+		<!-- Used by: Time measurement for analytics and device identification (StableID) -->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategorySystemBootTime</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<!-- 35F9.1: Measure time between events within the app or calculate absolute time -->
+				<string>35F9.1</string>
+			</array>
+		</dict>
+
+		<!-- 4. Disk Space API -->
+		<!-- Used by: Image caching to manage cache size and availability -->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryDiskSpace</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<!-- E174.1: Display disk space info to user or provide app functionality -->
+				<string>E174.1</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

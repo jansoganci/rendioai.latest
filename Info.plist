@@ -45,6 +45,9 @@
 	<string>$(ENABLE_LOGGING)</string>
 	<key>ENABLE_DEBUG_MODE</key>
 	<string>$(ENABLE_DEBUG_MODE)</string>
+	<!-- Export Compliance: App does not use non-exempt encryption -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>
 

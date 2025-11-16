@@ -7,6 +7,9 @@
 .env.local
 .env.*.local
 
+# Local xcconfig overrides (store secrets here, DO NOT COMMIT)
+*.xcconfig.local
+
 # Supabase
 #supabase/
 
@@ -34,9 +37,37 @@ node_modules/
 *.swo
 *~
 
-# Test files
-tests/
-docs/
-.archive_unused_configs/
+# iOS / Xcode build artifacts and user data
+DerivedData/
+build/
+*.xcuserstate
+*.xccheckout
+*.xcscmblueprint
+*.moved-aside
+*.ipa
+*.dSYM
+*.dSYM.zip
+*.xcarchive
+**/*.xcuserdatad/
+**/xcuserdata/
+
+# Swift Package Manager
+.build/
+.swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
+
+# Fastlane (if used)
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# Keep tests and docs tracked (do not ignore by default)
+# tests/
+# docs/
+
+# Archived configs (correct folder name)
+archive_unused_configs/
+
+# Internal tooling
 .claude/
 .cursor/

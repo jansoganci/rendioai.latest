@@ -44,5 +44,11 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>RendioAI needs access to your photos to generate videos from your images.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>RendioAI needs permission to save your generated videos to your photo library.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>RendioAI needs camera access to take photos for video generation.</string>
 </dict>
 </plist>

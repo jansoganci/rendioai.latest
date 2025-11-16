@@ -21,6 +21,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { logEvent } from '../_shared/logger.ts'
+import { isValidUUID, isValidAppleSub, validationError } from '../_shared/validation.ts'
 
 serve(async (req) => {
   try {
@@ -33,11 +34,24 @@ serve(async (req) => {
 
     const { device_id, apple_sub } = await req.json()
 
+    // Validate input presence
     if (!device_id || !apple_sub) {
       return new Response(JSON.stringify({ error: 'device_id and apple_sub required' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       })
+    }
+
+    // Validate device_id is valid UUID
+    if (!isValidUUID(device_id)) {
+      logEvent('merge_guest_user_invalid_device_id', { device_id }, 'warn')
+      return validationError('device_id', 'Must be valid UUID format')
+    }
+
+    // Validate apple_sub format
+    if (!isValidAppleSub(apple_sub)) {
+      logEvent('merge_guest_user_invalid_apple_sub', { apple_sub: apple_sub.substring(0, 10) }, 'warn')
+      return validationError('apple_sub', 'Invalid Apple subject ID format')
     }
 
     const supabase = createClient(

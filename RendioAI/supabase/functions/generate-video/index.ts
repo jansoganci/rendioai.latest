@@ -9,6 +9,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { createLogger, logRateLimit, logEvent } from '../_shared/logger.ts'
 import { initSentry, captureException, flush } from '../_shared/sentry.ts'
 import { alertRateLimitViolation } from '../_shared/telegram.ts'
+import { isValidUUID, isValidLength, validationError } from '../_shared/validation.ts'
 
 import type { GenerateVideoRequest, ActiveModel, FinalSettings } from './types.ts'
 import {
@@ -107,6 +108,47 @@ serve(async (req) => {
     if (fieldsError) {
       p5log('[P5][GenerateVideo][ERR]', { step: 'field_validation', requestId })
       logEvent('generate_video_missing_fields', {
+        has_user_id: !!user_id,
+        has_theme_id: !!theme_id,
+        has_prompt: !!prompt
+      }, 'warn')
+      return fieldsError
+    }
+
+    // STEP 4a: Validate input formats
+    console.log('[STEP 4a] Validating input formats...')
+
+    // Validate user_id is UUID
+    if (!isValidUUID(user_id)) {
+      logEvent('generate_video_invalid_user_id', { user_id }, 'warn')
+      return validationError('user_id', 'Must be valid UUID format')
+    }
+
+    // Validate theme_id is UUID
+    if (!isValidUUID(theme_id)) {
+      logEvent('generate_video_invalid_theme_id', { theme_id }, 'warn')
+      return validationError('theme_id', 'Must be valid UUID format')
+    }
+
+    // Validate prompt length (1-5000 chars)
+    if (!isValidLength(prompt, 1, 5000)) {
+      logEvent('generate_video_invalid_prompt_length', { length: prompt?.length }, 'warn')
+      return validationError('prompt', 'Must be 1-5000 characters')
+    }
+
+    // Validate image_url if provided
+    if (image_url && !isValidLength(image_url, 1, 2048)) {
+      logEvent('generate_video_invalid_image_url', { length: image_url?.length }, 'warn')
+      return validationError('image_url', 'Must be valid URL (max 2048 chars)')
+    }
+
+    console.log('[STEP 4a] Input validation passed ✓')
+
+    console.log('[STEP 5] Proceeding with validated inputs...')
+    const originalFieldsError = validateRequiredFields(body)
+    if (originalFieldsError) {
+      p5log('[P5][GenerateVideo][ERR]', { step: 'field_validation_double_check', requestId })
+      logEvent('generate_video_missing_fields_after_validation', {
         has_user_id: !!user_id,
         has_theme_id: !!theme_id,
         has_prompt: !!prompt

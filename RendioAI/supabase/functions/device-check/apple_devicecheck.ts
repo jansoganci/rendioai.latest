@@ -282,7 +282,7 @@ async function signES256(message: string, privateKeyPEM: string): Promise<ArrayB
     ['sign']
   )
 
-  // Sign the message
+  // Sign the messagedx
   const encoder = new TextEncoder()
   const messageData = encoder.encode(message)
 

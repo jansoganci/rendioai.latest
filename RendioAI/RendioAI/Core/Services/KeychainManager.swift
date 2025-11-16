@@ -47,13 +47,88 @@ class KeychainManager {
     }
     
     // MARK: - Clear All Tokens
-    
+
     func clearAllTokens() {
         deleteAccessToken()
         deleteRefreshToken()
         print("🗑️ KeychainManager: All tokens cleared")
     }
-    
+
+    // MARK: - Token Expiry Helpers
+
+    /// Gets the expiry date of the stored access token
+    /// - Returns: Expiry date from JWT "exp" claim, or nil if no token or parsing fails
+    func getAccessTokenExpiry() -> Date? {
+        guard let token = getAccessToken() else {
+            return nil
+        }
+        return Self.parseJWTExpiry(token)
+    }
+
+    /// Parses JWT token to extract expiry date from "exp" claim
+    /// - Parameter token: JWT token string (format: header.payload.signature)
+    /// - Returns: Expiry date, or nil if token is invalid or missing "exp" claim
+    ///
+    /// Example:
+    /// ```swift
+    /// let token = "eyJhbGc...header.eyJleHAiOjE3MzE3ODk2MDB9...payload.signature"
+    /// let expiry = KeychainManager.parseJWTExpiry(token)
+    /// // Returns: Date(timeIntervalSince1970: 1731789600)
+    /// ```
+    static func parseJWTExpiry(_ token: String) -> Date? {
+        // JWT format: header.payload.signature
+        let parts = token.split(separator: ".")
+
+        guard parts.count == 3 else {
+            print("⚠️ KeychainManager: Invalid JWT format (expected 3 parts, got \(parts.count))")
+            return nil
+        }
+
+        // Get payload (middle part)
+        var payload = String(parts[1])
+
+        // JWT uses base64url encoding - convert to standard base64
+        // Replace URL-safe characters with standard base64 characters
+        payload = payload
+            .replacingOccurrences(of: "-", with: "+")
+            .replacingOccurrences(of: "_", with: "/")
+
+        // Add padding if needed (base64 requires length % 4 == 0)
+        let paddingLength = (4 - payload.count % 4) % 4
+        if paddingLength > 0 {
+            payload += String(repeating: "=", count: paddingLength)
+        }
+
+        // Decode base64 to data
+        guard let data = Data(base64Encoded: payload) else {
+            print("⚠️ KeychainManager: Failed to decode base64 payload")
+            return nil
+        }
+
+        // Parse JSON payload
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            print("⚠️ KeychainManager: Failed to parse JSON from payload")
+            return nil
+        }
+
+        // Extract "exp" claim (Unix timestamp as number)
+        guard let exp = json["exp"] as? TimeInterval else {
+            print("⚠️ KeychainManager: No 'exp' claim found in token")
+            return nil
+        }
+
+        // Convert Unix timestamp to Date
+        let expiryDate = Date(timeIntervalSince1970: exp)
+
+        // Log expiry for debugging
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        formatter.timeStyle = .medium
+        print("✅ KeychainManager: Token expires at \(formatter.string(from: expiryDate))")
+
+        return expiryDate
+    }
+
     // MARK: - Generic Keychain Operations
     
     private func save(_ value: String, forKey key: String) {

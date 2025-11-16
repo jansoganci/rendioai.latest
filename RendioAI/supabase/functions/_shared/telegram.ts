@@ -276,7 +276,7 @@ export async function alertCreditSystemError(
 export async function alertAuthFailure(
   reason: string,
   deviceId?: string,
-  error?: Error
+  error?: Error | Record<string, any>
 ) {
   await notifier.alert(
     AlertLevel.ERROR,
@@ -284,7 +284,7 @@ export async function alertAuthFailure(
     reason,
     {
       function: 'device-check',
-      error: error?.message,
+      error: error instanceof Error ? error.message : JSON.stringify(error),
       metadata: {
         device_id: deviceId,
       },

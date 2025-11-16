@@ -1,7 +1,7 @@
 /**
- * Device Check Endpoint
+ * DeviceCheck Endpoint - Production Hardened
  *
- * Purpose: Guest user onboarding with DeviceCheck verification and anonymous auth
+ * Purpose: Guest user onboarding with Apple DeviceCheck verification
  *
  * Endpoint: POST /device-check
  *
@@ -13,15 +13,16 @@
  *
  * Response:
  * {
+ *   "success": true,
  *   "user_id": "uuid",
  *   "credits_remaining": 10,
  *   "is_new": true,
- *   "access_token": "jwt-token",  // NEW: For Storage operations
- *   "refresh_token": "refresh-token"  // NEW: To refresh session
+ *   "is_valid_device": true,
+ *   "suggested_action": "allow",
+ *   "access_token": "jwt-token",
+ *   "refresh_token": "refresh-token",
+ *   "correlation_id": "uuid"
  * }
- *
- * Note: For Phase 1, DeviceCheck verification is simplified (mock).
- * Real DeviceCheck verification will be implemented in Phase 0.5.
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
@@ -29,15 +30,25 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { createLogger, logCreditTransaction } from '../_shared/logger.ts'
 import { initSentry, captureException, flush } from '../_shared/sentry.ts'
 import { alertAuthFailure } from '../_shared/telegram.ts'
+import { queryDeviceCheckBits } from './apple_devicecheck.ts'
+import { isValidUUID, isValidDeviceToken, validationError } from '../_shared/validation.ts'
 
 // Initialize monitoring
 initSentry('device-check')
 const logger = createLogger('device-check')
 
+// Constants
+const RATE_LIMIT_PER_HOUR = 10
+
 serve(async (req) => {
   const startTime = Date.now()
+  const correlationId = crypto.randomUUID()
 
   try {
+    logger.info('DeviceCheck request started', {
+      metadata: { correlation_id: correlationId }
+    })
+
     // Only allow POST requests
     if (req.method !== 'POST') {
       return new Response(
@@ -51,10 +62,13 @@ serve(async (req) => {
 
     const { device_id, device_token } = await req.json()
 
-    // Validate input
+    // Validate input presence
     if (!device_id || !device_token) {
       return new Response(
-        JSON.stringify({ error: 'device_id and device_token are required' }),
+        JSON.stringify({
+          error: 'device_id and device_token are required',
+          correlation_id: correlationId
+        }),
         {
           status: 400,
           headers: { 'Content-Type': 'application/json' }
@@ -62,85 +76,241 @@ serve(async (req) => {
       )
     }
 
+    // Validate device_id is valid UUID format
+    if (!isValidUUID(device_id)) {
+      await alertAuthFailure('Invalid device_id format', device_id)
+      logger.warn('Invalid device_id format', {
+        metadata: { correlation_id: correlationId, device_id_length: device_id.length }
+      })
+      return validationError('device_id', 'Must be valid UUID format')
+    }
+
+    // Validate device_token format (base64 + reasonable length)
+    if (!isValidDeviceToken(device_token)) {
+      await alertAuthFailure('Invalid device token format', device_id)
+      logger.warn('Invalid device_token format', {
+        metadata: { correlation_id: correlationId, token_length: device_token.length }
+      })
+      return validationError('device_token', 'Must be valid base64 format (50-5000 chars)')
+    }
+
     // Initialize Supabase clients
-    // Service role client for database operations
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Anon client for auth operations
     const supabaseAuth = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     )
 
-    // 1. Verify device token with Apple (simplified for MVP)
-    // TODO (Phase 0.5): Implement full Apple DeviceCheck verification
-    // See: https://developer.apple.com/documentation/devicecheck
-    // For now, we'll do a basic validation
-    if (!device_token || device_token.length < 10) {
-      await alertAuthFailure('Invalid device token', device_id)
+    // Check rate limit BEFORE doing expensive Apple call
+    const { data: rateLimitData } = await supabaseAdmin.rpc('check_device_rate_limit', {
+      p_device_id: device_id
+    })
+
+    if (rateLimitData?.limit_exceeded) {
+      logger.warn('Rate limit exceeded', {
+        metadata: {
+          device_id,
+          correlation_id: correlationId,
+          request_count: rateLimitData.request_count
+        }
+      })
+
       return new Response(
-        JSON.stringify({ error: 'Invalid device token' }),
+        JSON.stringify({
+          success: false,
+          error: 'Rate limit exceeded',
+          suggested_action: 'throttle',
+          correlation_id: correlationId,
+          retry_after: rateLimitData.window_reset_at
+        }),
         {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'Retry-After': '3600'
+          }
         }
       )
     }
 
-    logger.info('Device check request', { user_id: device_id })
+    logger.info('Verifying device with Apple DeviceCheck', {
+      metadata: { correlation_id: correlationId }
+    })
 
-    // 2. Check if user already exists
+    // Verify device token with Apple DeviceCheck API
+    let appleResponse: {
+      bit0: number
+      bit1: number
+      last_update_time?: string
+    } | null = null
+
+    let querySuccess = false
+    let fraudFlags: string[] = []
+
+    try {
+      appleResponse = await queryDeviceCheckBits(device_token, correlationId)
+      querySuccess = true
+
+      logger.info('Apple DeviceCheck verification succeeded', {
+        metadata: {
+          correlation_id: correlationId,
+          bit0: appleResponse.bit0,
+          bit1: appleResponse.bit1
+        }
+      })
+    } catch (error) {
+      querySuccess = false
+
+      logger.error('Apple DeviceCheck verification failed', error as Error, {
+        metadata: { correlation_id: correlationId }
+      })
+
+      captureException(error, {
+        action: 'apple_devicecheck_query',
+        metadata: { correlation_id: correlationId }
+      })
+
+      // Check if this is a repeated failure (fraud signal)
+      const { data: existingDevice } = await supabaseAdmin
+        .from('device_check_devices')
+        .select('dc_query_fail_count, dc_last_query_at')
+        .eq('device_id', device_id)
+        .single()
+
+      if (existingDevice) {
+        const failCount = existingDevice.dc_query_fail_count || 0
+        const lastQuery = existingDevice.dc_last_query_at
+          ? new Date(existingDevice.dc_last_query_at)
+          : null
+
+        // Check if 3+ failures in 24 hours
+        if (failCount >= 2 && lastQuery) {
+          const hoursSinceLastQuery = (Date.now() - lastQuery.getTime()) / (1000 * 60 * 60)
+          if (hoursSinceLastQuery < 24) {
+            fraudFlags.push('dc_query_fail_spike')
+          }
+        }
+      }
+
+      // Continue with degraded mode (allow but flag)
+      // We'll still create the user but mark as suspicious
+    }
+
+    // Check if user already exists
     const { data: existingUser, error: queryError } = await supabaseAdmin
       .from('users')
       .select('*')
       .eq('device_id', device_id)
       .single()
 
-    if (queryError && queryError.code !== 'PGRST116') { // PGRST116 = no rows returned
-      logger.error('Failed to query user', queryError, { user_id: device_id })
+    if (queryError && queryError.code !== 'PGRST116') {
+      logger.error('Failed to query user', queryError, {
+        metadata: { correlation_id: correlationId }
+      })
       throw queryError
     }
 
-    // 3. Handle existing user
+    // Upsert device check state
+    if (appleResponse) {
+      const { data: deviceStateResult } = await supabaseAdmin.rpc('upsert_device_check_state', {
+        p_device_id: device_id,
+        p_user_id: existingUser?.id || crypto.randomUUID(), // Temp UUID if new user
+        p_bit0: appleResponse.bit0,
+        p_bit1: appleResponse.bit1,
+        p_last_update_time: appleResponse.last_update_time
+          ? new Date(appleResponse.last_update_time).toISOString()
+          : new Date().toISOString(),
+        p_query_success: querySuccess,
+        p_fraud_flags: fraudFlags
+      })
+
+      // Determine suggested action based on risk score
+      const riskScore = deviceStateResult?.risk_score || 0
+      let suggestedAction = 'allow'
+
+      if (riskScore >= 70) {
+        suggestedAction = 'block'
+      } else if (riskScore >= 50) {
+        suggestedAction = 'require_captcha'
+      } else if (riskScore >= 30) {
+        suggestedAction = 'throttle'
+      }
+
+      logger.info('Device state updated', {
+        metadata: {
+          correlation_id: correlationId,
+          risk_score: riskScore,
+          suggested_action: suggestedAction,
+          fraud_flags: fraudFlags
+        }
+      })
+
+      // If high risk, block the request
+      if (suggestedAction === 'block') {
+        await alertAuthFailure('High-risk device blocked', device_id, {
+          risk_score: riskScore,
+          fraud_flags: fraudFlags
+        })
+
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Device verification failed',
+            is_valid_device: false,
+            suggested_action: 'block',
+            correlation_id: correlationId
+          }),
+          {
+            status: 403,
+            headers: { 'Content-Type': 'application/json' }
+          }
+        )
+      }
+    }
+
+    // Handle existing user
     if (existingUser) {
       logger.info('Existing user found', {
         user_id: existingUser.id,
-        metadata: { device_id }
+        metadata: {
+          device_id,
+          correlation_id: correlationId
+        }
       })
 
-      // Always create new anonymous auth session for existing users
-      // This ensures we always return valid tokens for Storage operations
-      // Note: Supabase anonymous auth cannot reuse existing sessions,
-      // so we create a new session each time
+      // Create new anonymous auth session
       const { data: authData, error: authError } = await supabaseAuth.auth.signInAnonymously()
 
       if (authError || !authData.session) {
-        logger.error('Failed to create anonymous session for existing user', authError)
+        logger.error('Failed to create anonymous session for existing user', authError, {
+          metadata: { correlation_id: correlationId }
+        })
         await alertAuthFailure('Failed to create anonymous session', device_id, authError)
-        
-        // Return response without tokens (graceful degradation)
-        // App can still function, but image uploads will fail
+
         return new Response(
           JSON.stringify({
             user_id: existingUser.id,
             credits_remaining: existingUser.credits_remaining,
             is_new: false,
+            is_valid_device: querySuccess,
+            suggested_action: 'allow',
             access_token: null,
             refresh_token: null,
-            error: 'Failed to create auth session'
+            error: 'Failed to create auth session',
+            correlation_id: correlationId
           }),
           {
             headers: { 'Content-Type': 'application/json' },
-            status: 200  // Still return 200, but with null tokens
+            status: 200
           }
         )
       }
 
-      // Update auth_user_id (even if it already exists)
-      // This links the user to the new auth session
+      // Update auth_user_id
       const { error: updateError } = await supabaseAdmin
         .from('users')
         .update({ auth_user_id: authData.user.id })
@@ -148,23 +318,45 @@ serve(async (req) => {
 
       if (updateError) {
         logger.error('Failed to link auth to existing user', updateError, {
-          user_id: existingUser.id
+          user_id: existingUser.id,
+          metadata: { correlation_id: correlationId }
         })
-        // Continue anyway - tokens are still valid even if update fails
       } else {
         logger.info('Linked auth session to existing user', {
           user_id: existingUser.id,
-          metadata: { auth_user_id: authData.user.id }
+          metadata: {
+            auth_user_id: authData.user.id,
+            correlation_id: correlationId
+          }
+        })
+      }
+
+      // Update device_check_devices with actual user_id
+      if (appleResponse) {
+        await supabaseAdmin.rpc('upsert_device_check_state', {
+          p_device_id: device_id,
+          p_user_id: existingUser.id,
+          p_bit0: appleResponse.bit0,
+          p_bit1: appleResponse.bit1,
+          p_last_update_time: appleResponse.last_update_time
+            ? new Date(appleResponse.last_update_time).toISOString()
+            : new Date().toISOString(),
+          p_query_success: querySuccess,
+          p_fraud_flags: fraudFlags
         })
       }
 
       return new Response(
         JSON.stringify({
+          success: true,
           user_id: existingUser.id,
           credits_remaining: existingUser.credits_remaining,
           is_new: false,
-          access_token: authData.session.access_token,  // ✅ Always returns token
-          refresh_token: authData.session.refresh_token  // ✅ Always returns token
+          is_valid_device: querySuccess,
+          suggested_action: 'allow',
+          access_token: authData.session.access_token,
+          refresh_token: authData.session.refresh_token,
+          correlation_id: correlationId
         }),
         {
           headers: { 'Content-Type': 'application/json' }
@@ -172,30 +364,35 @@ serve(async (req) => {
       )
     }
 
-    // 4. Create anonymous auth session FIRST for new user
+    // Create anonymous auth session for new user
     const { data: authData, error: authError } = await supabaseAuth.auth.signInAnonymously()
 
     if (authError || !authData.session) {
-      logger.error('Failed to create anonymous session', authError)
+      logger.error('Failed to create anonymous session', authError, {
+        metadata: { correlation_id: correlationId }
+      })
       await alertAuthFailure('Failed to create anonymous session for new user', device_id, authError)
       throw new Error('Failed to create auth session')
     }
 
     logger.info('Created anonymous auth session', {
-      metadata: { auth_user_id: authData.user.id, device_id }
+      metadata: {
+        auth_user_id: authData.user.id,
+        device_id,
+        correlation_id: correlationId
+      }
     })
 
-    // 5. Create new guest user linked to auth session
-    // Credits will be added via stored procedure to ensure proper audit trail
+    // Create new guest user
     const { data: newUser, error: insertError } = await supabaseAdmin
       .from('users')
       .insert({
         device_id: device_id,
-        auth_user_id: authData.user.id,  // Link to Supabase auth
+        auth_user_id: authData.user.id,
         is_guest: true,
         tier: 'free',
-        credits_remaining: 0,  // Start with 0, stored procedure will add 10
-        credits_total: 0,       // Start with 0, stored procedure will update
+        credits_remaining: 0,
+        credits_total: 0,
         initial_grant_claimed: true,
         language: 'en',
         theme_preference: 'system'
@@ -205,16 +402,32 @@ serve(async (req) => {
 
     if (insertError) {
       logger.error('Failed to create user', insertError, {
-        user_id: device_id,
-        metadata: { auth_user_id: authData.user.id }
+        metadata: {
+          device_id,
+          auth_user_id: authData.user.id,
+          correlation_id: correlationId
+        }
       })
-      // Clean up auth session if user creation fails
       await supabaseAuth.auth.signOut()
       throw insertError
     }
 
-    // 6. Grant initial credits using stored procedure
-    // This ensures proper audit trail and atomic operation
+    // Update device_check_devices with actual user_id
+    if (appleResponse) {
+      await supabaseAdmin.rpc('upsert_device_check_state', {
+        p_device_id: device_id,
+        p_user_id: newUser.id,
+        p_bit0: appleResponse.bit0,
+        p_bit1: appleResponse.bit1,
+        p_last_update_time: appleResponse.last_update_time
+          ? new Date(appleResponse.last_update_time).toISOString()
+          : new Date().toISOString(),
+        p_query_success: querySuccess,
+        p_fraud_flags: fraudFlags
+      })
+    }
+
+    // Grant initial credits
     const { data: creditResult, error: creditError } = await supabaseAdmin.rpc('add_credits', {
       p_user_id: newUser.id,
       p_amount: 10,
@@ -232,17 +445,20 @@ serve(async (req) => {
         undefined,
         creditError?.message || creditResult?.error
       )
-      // Don't fail the request if credit logging fails, but log it
       console.error('Failed to grant initial credits:', creditError || creditResult?.error)
-      // Return user with 0 credits if grant failed
+
       return new Response(
         JSON.stringify({
+          success: true,
           user_id: newUser.id,
           credits_remaining: 0,
           is_new: true,
+          is_valid_device: querySuccess,
+          suggested_action: 'allow',
           access_token: authData.session.access_token,
           refresh_token: authData.session.refresh_token,
-          warning: 'Initial credit grant failed'
+          warning: 'Initial credit grant failed',
+          correlation_id: correlationId
         }),
         {
           headers: { 'Content-Type': 'application/json' }
@@ -265,18 +481,23 @@ serve(async (req) => {
         device_id,
         auth_user_id: authData.user.id,
         credits_granted: 10,
-        credits_remaining: creditResult.credits_remaining
+        credits_remaining: creditResult.credits_remaining,
+        is_valid_device: querySuccess,
+        correlation_id: correlationId
       }
     })
 
-    // 7. Return new user data with auth tokens
     return new Response(
       JSON.stringify({
+        success: true,
         user_id: newUser.id,
         credits_remaining: creditResult.credits_remaining,
         is_new: true,
+        is_valid_device: querySuccess,
+        suggested_action: 'allow',
         access_token: authData.session.access_token,
-        refresh_token: authData.session.refresh_token
+        refresh_token: authData.session.refresh_token,
+        correlation_id: correlationId
       }),
       {
         headers: { 'Content-Type': 'application/json' }
@@ -286,17 +507,24 @@ serve(async (req) => {
   } catch (error) {
     const duration = Date.now() - startTime
     logger.error('Device check failed', error as Error, {
-      duration_ms: duration
+      duration_ms: duration,
+      metadata: { correlation_id: correlationId }
     })
     captureException(error, {
       action: 'device_check',
-      metadata: { duration_ms: duration }
+      metadata: {
+        duration_ms: duration,
+        correlation_id: correlationId
+      }
     })
 
-    await flush()  // Ensure logs are sent before function ends
+    await flush()
 
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({
+        error: error.message,
+        correlation_id: correlationId
+      }),
       {
         status: 500,
         headers: { 'Content-Type': 'application/json' }
@@ -304,4 +532,3 @@ serve(async (req) => {
     )
   }
 })
-

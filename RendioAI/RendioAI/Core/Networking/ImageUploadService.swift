@@ -29,28 +29,66 @@ class ImageUploadService: ImageUploadServiceProtocol {
             print("❌ ImageUploadService: Failed to convert image to JPEG")
             throw AppError.invalidResponse
         }
-        
-        // Get JWT token from Keychain (preferred) or fallback to anon key
-        let authToken: String
-        if let accessToken = KeychainManager.shared.getAccessToken() {
-            authToken = accessToken
-            print("✅ ImageUploadService: Using JWT token from Keychain")
-        } else {
-            // Fallback to anon key if no token available (backward compatibility)
-            authToken = anonKey
-            print("⚠️ ImageUploadService: No JWT token found, using anon key (may fail with RLS)")
-        }
-        
-        // Generate unique filename
+
+        // Generate unique filename (use same filename for retry)
         let filename = "input_\(UUID().uuidString).jpg"
         let filePath = "\(userId)/\(filename)"
-        
+
+        // Get valid JWT token (auto-refreshes if needed)
+        var authToken = try await AuthService.shared.getValidAccessToken()
+        print("✅ ImageUploadService: Got valid JWT token")
+
+        // First attempt
+        var uploadResult = try await performUpload(
+            imageData: imageData,
+            filePath: filePath,
+            authToken: authToken
+        )
+
+        // If first attempt failed with 401/403, refresh token and retry ONCE
+        if case .authError(let statusCode) = uploadResult {
+            print("⚠️ ImageUploadService: Upload failed with HTTP \(statusCode) - refreshing token and retrying...")
+
+            // Force token refresh
+            authToken = try await AuthService.shared.refreshAccessToken()
+            print("✅ ImageUploadService: Token refreshed, retrying upload...")
+
+            // Retry with fresh token
+            uploadResult = try await performUpload(
+                imageData: imageData,
+                filePath: filePath,
+                authToken: authToken
+            )
+        }
+
+        // Check final result
+        switch uploadResult {
+        case .success(let publicURL):
+            print("✅ ImageUploadService: Upload successful")
+            return publicURL
+        case .authError(let statusCode):
+            print("❌ ImageUploadService: Upload failed after retry with HTTP \(statusCode)")
+            throw AppError.unauthorized
+        case .error(let message):
+            print("❌ ImageUploadService: Upload failed: \(message)")
+            throw AppError.networkFailure
+        }
+    }
+
+    /// Performs the actual upload request
+    /// - Returns: Upload result (success with URL, auth error, or general error)
+    private func performUpload(
+        imageData: Data,
+        filePath: String,
+        authToken: String
+    ) async throws -> UploadResult {
         // Construct upload URL (Supabase Storage REST API format)
         guard let url = URL(string: "\(baseURL)/storage/v1/object/thumbnails/\(filePath)") else {
             print("❌ ImageUploadService: Invalid upload URL")
-            throw AppError.invalidResponse
+            return .error("Invalid upload URL")
         }
-        
+
+        // Build request
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
@@ -58,25 +96,41 @@ class ImageUploadService: ImageUploadServiceProtocol {
         request.setValue("image/jpeg", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.httpBody = imageData
-        
+
+        // Perform upload
         let (data, response) = try await session.data(for: request)
-        
+
         guard let httpResponse = response as? HTTPURLResponse else {
             print("❌ ImageUploadService: Invalid response type")
-            throw AppError.invalidResponse
+            return .error("Invalid response type")
         }
-        
-        guard (200...299).contains(httpResponse.statusCode) else {
+
+        // Check response status
+        if (200...299).contains(httpResponse.statusCode) {
+            // Success - construct and return public URL
+            let publicURL = "\(baseURL)/storage/v1/object/public/thumbnails/\(filePath)"
+            return .success(publicURL)
+        } else if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+            // Auth error - token might be expired
             if let errorString = String(data: data, encoding: .utf8) {
-                print("❌ ImageUploadService: Upload error: \(errorString)")
+                print("⚠️ ImageUploadService: Auth error (HTTP \(httpResponse.statusCode)): \(errorString)")
             }
-            throw AppError.networkFailure
+            return .authError(httpResponse.statusCode)
+        } else {
+            // Other error
+            if let errorString = String(data: data, encoding: .utf8) {
+                print("❌ ImageUploadService: Upload error (HTTP \(httpResponse.statusCode)): \(errorString)")
+                return .error(errorString)
+            }
+            return .error("HTTP \(httpResponse.statusCode)")
         }
-        
-        // Construct public URL
-        let publicURL = "\(baseURL)/storage/v1/object/public/thumbnails/\(filePath)"
-        
-        return publicURL
+    }
+
+    /// Result of an upload attempt
+    private enum UploadResult {
+        case success(String)        // Public URL
+        case authError(Int)          // HTTP status code (401 or 403)
+        case error(String)           // Error message
     }
 }
 

@@ -43,9 +43,9 @@ struct AppConfig {
            !url.isEmpty {
             return url
         }
-        
-        // Fallback to hardcoded value (for backward compatibility during migration)
-        return "https://ojcnjxzctnwbmupggoxq.supabase.co"
+
+        // No fallback - force proper configuration
+        fatalError("SUPABASE_URL must be set in .xcconfig file")
     }
     
     /// Supabase anonymous (public) API key
@@ -55,9 +55,9 @@ struct AppConfig {
            !key.isEmpty {
             return key
         }
-        
-        // Fallback to hardcoded value (for backward compatibility during migration)
-        return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qY25qeHpjdG53Ym11cGdnb3hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzMjkzNjIsImV4cCI6MjA3NzkwNTM2Mn0._bKw_0kYf65SxYC8ik3_SMdMgUYoxgVbisvCdRfYo08"
+
+        // No fallback - force proper configuration
+        fatalError("SUPABASE_ANON_KEY must be set in .xcconfig file")
     }
     
     // MARK: - API Configuration
